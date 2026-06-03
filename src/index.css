@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 215 35% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 35% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 35% 15%;
+    --primary: 213 58% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 215 35% 15%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 15% 47%;
+    --accent: 150 40% 30%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 213 58% 18%;
+    --radius: 0.625rem;
+
+    --sidebar-background: 213 58% 12%;
+    --sidebar-foreground: 210 20% 96%;
+    --sidebar-primary: 150 40% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 58% 20%;
+    --sidebar-accent-foreground: 210 20% 96%;
+    --sidebar-border: 213 40% 22%;
+    --sidebar-ring: 150 40% 45%;
+
+    --deep-blue: #0F2B4C;
+    --navy: #1A3A5C;
+    --graphite: #2D3748;
+    --consorcio-gold: #C47A21;
+    --consorcio-gold-light: #E0A84B;
+    --light-gray: #F7FAFC;
+    --medium-gray: #E2E8F0;
+    --text-muted: #718096;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/60 shadow-lg;
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, #08111F 0%, #0F2B4C 46%, #123B63 100%);
+  }
+
+  .gradient-consorcio {
+    background: linear-gradient(135deg, #08111F 0%, #0F2B4C 48%, #123B63 100%);
+  }
+
+  .text-gradient-consorcio {
+  background: linear-gradient(135deg, #E0A84B 0%, #C47A21 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+  .shadow-gold-soft {
+    box-shadow: 0 18px 45px rgba(196, 122, 33, 0.22);
+  }
+
+  .gradient-subtle {
+    background: linear-gradient(180deg, #F7FAFC 0%, #EDF2F7 100%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
