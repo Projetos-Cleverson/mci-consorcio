@@ -33,6 +33,7 @@ export default function App() {
       <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/p/:partnerSlug" element={<Landing />} />
           <Route path="/diagnostico" element={<Quiz />} />
           <Route path="/dados" element={<LeadCapture />} />
           <Route path="/resultado" element={<Result />} />

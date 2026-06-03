@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getPartnerDisplayName, usePartnerCompany } from '@/hooks/usePartnerCompany';
 import {
   ArrowRight,
@@ -104,8 +104,11 @@ const faqs = [
 
 export default function Landing() {
   const [searchParams] = useSearchParams();
-  const partner = searchParams.get('partner');
-  const diagnosticoLink = partner ? `/diagnostico?partner=${partner}` : '/diagnostico';
+const { partnerSlug } = useParams();
+
+  const partnerFromQuery = searchParams.get('partner'); 
+  const partner = partnerSlug || partnerFromQuery;
+  const diagnosticoLink = partner ? `/diagnostico?partner=${encodeURIComponent(partner)}` : '/diagnostico';
   const { partnerCompany } = usePartnerCompany(partner);
   const partnerDisplayName = getPartnerDisplayName(partnerCompany);
 

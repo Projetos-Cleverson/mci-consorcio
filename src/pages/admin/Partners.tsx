@@ -137,7 +137,7 @@ export default function AdminPartners() {
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
 
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const baseUrl = import.meta.env.VITE_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
 
   async function loadData() {
     setIsLoading(true);
@@ -516,7 +516,7 @@ export default function AdminPartners() {
                       <button
                         onClick={() =>
                           copyText(
-                            `${baseUrl}/?partner=${app.desired_slug}`,
+                            `${baseUrl}/p/${app.desired_slug}`,
                             "Link copiado.",
                           )
                         }
@@ -537,7 +537,7 @@ export default function AdminPartners() {
               <EmptyState text="Nenhuma empresa aprovada encontrada." />
             ) : (
               filteredCompanies.map((company) => {
-                const link = `${baseUrl}/?partner=${company.slug}`;
+                const link = `${baseUrl}/p/${company.slug}`;
                 const loginUrl = `${baseUrl}/admin/login`;
                 const accessEmail = company.responsible_email || "-";
                 const isActive =
