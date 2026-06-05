@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import Leads from '@/pages/admin/Leads';
 
-const LOCAL_ADMIN_KEY = "mci_consorcio_admin_session";
+const LOCAL_ADMIN_KEY = 'mci_consorcio_admin_session';
 
 export default function ProtectedAdmin() {
   const [isLoading, setIsLoading] = useState(true);
@@ -18,7 +18,7 @@ export default function ProtectedAdmin() {
         return;
       }
 
-      setIsAllowed(localStorage.getItem(LOCAL_ADMIN_KEY) === "true");
+      setIsAllowed(localStorage.getItem(LOCAL_ADMIN_KEY) === 'true');
       setIsLoading(false);
     };
 

@@ -2,7 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useLeadsStore } from '@/stores/leadsStore';
 import { useToast } from '@/hooks/use-toast';
-import { STATUS_OPTIONS } from '@/constants/config';
 import { QUESTIONS } from '@/constants/questions';
 import { PROFILES } from '@/constants/profiles';
 import { formatPhone } from '@/lib/utils';
@@ -16,18 +15,144 @@ import {
   Tag,
   MessageCircle,
   FileText,
+  ClipboardList,
+  ListTodo,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
+
+const STATUS_OPTIONS = [
+  'Novo diagnóstico',
+  'Contato enviado',
+  'Respondeu',
+  'Não respondeu',
+  'Agendado',
+  'Em atendimento',
+  'Proposta apresentada',
+  'Venda realizada',
+  'Venda perdida',
+  'Sem aderência',
+];
+
+const OBSERVATION_OPTIONS = [
+  'Cliente pediu mais informações',
+  'Cliente demonstrou interesse',
+  'Cliente tem dúvida sobre prazo',
+  'Cliente tem dúvida sobre lance',
+  'Cliente precisa organizar renda',
+  'Cliente precisa alinhar valor da carta',
+  'Cliente não respondeu',
+  'Cliente pediu retorno depois',
+  'Cliente não tem aderência no momento',
+  'Outro',
+];
+
+const NEXT_ACTION_OPTIONS = [
+  'Enviar mensagem no WhatsApp',
+  'Ligar para o cliente',
+  'Agendar reunião',
+  'Enviar simulação',
+  'Solicitar documentos',
+  'Explicar regras do consórcio',
+  'Avaliar possibilidade de lance',
+  'Aguardar retorno',
+  'Marcar como sem aderência',
+  'Encerrar atendimento',
+  'Outro',
+];
+
+type AssignableMember = {
+  id: string;
+  user_id: string | null;
+  name: string | null;
+  email: string | null;
+  role: string;
+  status: string;
+};
 
 export default function AdminLeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { leads, updateLead } = useLeadsStore();
+  const access = useAdminAccess();
   const lead = leads.find((l) => l.id === id);
 
-  const [obs, setObs] = useState(lead?.observacoes || '');
+  const [observacaoPadrao, setObservacaoPadrao] = useState('');
+  const [proximaAcaoPadrao, setProximaAcaoPadrao] = useState('');
+  const [observacaoLivre, setObservacaoLivre] = useState(lead?.observacoes || '');
   const [proximaAcao, setProximaAcao] = useState(lead?.proximaAcao || '');
+  const [teamMembers, setTeamMembers] = useState<AssignableMember[]>([]);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false);
+
+  useEffect(() => {
+    async function loadAssignableMembers() {
+      if (!lead?.parceiro && !access.companyId) return;
+
+      setIsLoadingTeam(true);
+
+      try {
+        let companyId = access.companyId;
+
+        if (!companyId && lead.parceiro) {
+          const { data: company } = await supabase
+            .from('partner_companies')
+            .select('id')
+            .eq('slug', lead.parceiro)
+            .maybeSingle();
+
+          companyId = company?.id || null;
+        }
+
+        if (!companyId) return;
+
+        const { data, error } = await supabase
+          .from('partner_company_users')
+          .select('id,user_id,name,email,role,status')
+          .eq('company_id', companyId)
+          .in('role', ['company_admin', 'company_manager', 'company_consultant'])
+          .in('status', ['active', 'pending_auth'])
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        setTeamMembers((data || []) as AssignableMember[]);
+      } catch (error) {
+        console.error('Erro ao carregar equipe para atribuição:', error);
+      } finally {
+        setIsLoadingTeam(false);
+      }
+    }
+
+    void loadAssignableMembers();
+  }, [lead?.parceiro, access.companyId]);
+
+  useEffect(() => {
+    if (!lead) return;
+
+    const existingObservation = lead.observacoes || '';
+    const matchedObservation = OBSERVATION_OPTIONS.find((option) => option === existingObservation);
+
+    if (matchedObservation) {
+      setObservacaoPadrao(matchedObservation);
+      setObservacaoLivre('');
+    } else {
+      setObservacaoPadrao('');
+      setObservacaoLivre(existingObservation);
+    }
+
+    const existingNextAction = lead.proximaAcao || '';
+    const matchedNextAction = NEXT_ACTION_OPTIONS.find((option) => option === existingNextAction);
+
+    if (matchedNextAction) {
+      setProximaAcaoPadrao(matchedNextAction);
+      setProximaAcao('');
+    } else {
+      setProximaAcaoPadrao('');
+      setProximaAcao(existingNextAction);
+    }
+  }, [lead?.id, lead?.observacoes, lead?.proximaAcao]);
 
   if (!lead) {
     return (
@@ -50,7 +175,7 @@ export default function AdminLeadDetail() {
     hibrida: 'bg-indigo-100 text-indigo-700',
     reorganizacao: 'bg-cyan-100 text-cyan-700',
     investidor: 'bg-orange-100 text-orange-700',
-    emocional: 'bg-red-100 text-red-700',
+    emocional: 'bg-amber-100 text-amber-800',
   };
 
   const profileLabels: Record<string, string> = {
@@ -62,18 +187,75 @@ export default function AdminLeadDetail() {
     emocional: 'Análise de Aderência',
   };
 
+  const canAssignLead =
+    access.isMasterAdmin ||
+    access.isCompanyAdmin ||
+    access.isCompanyManager;
+
+  const assignedMember = teamMembers.find(
+    (member) => member.user_id && member.user_id === lead.assignedToUserId
+  );
+
+  const responsibleLabel =
+    assignedMember?.name ||
+    assignedMember?.email ||
+    lead.responsavel ||
+    'Sem responsável definido';
+
   const handleStatusChange = (newStatus: string) => {
     updateLead(lead.id, { status: newStatus });
     toast({ title: 'Status atualizado', description: `Lead movido para: ${newStatus}` });
   };
 
   const handleSaveNotes = () => {
-    updateLead(lead.id, { observacoes: obs, proximaAcao });
-    toast({ title: 'Salvo', description: 'Observações atualizadas com sucesso.' });
+    const observacaoFinal = [
+      observacaoPadrao,
+      observacaoLivre.trim(),
+    ].filter(Boolean).join(' — ');
+
+    const proximaAcaoFinal = [
+      proximaAcaoPadrao,
+      proximaAcao.trim(),
+    ].filter(Boolean).join(' — ');
+
+    updateLead(lead.id, {
+      observacoes: observacaoFinal,
+      proximaAcao: proximaAcaoFinal,
+    });
+
+    toast({ title: 'Salvo', description: 'Observações e próxima ação atualizadas com sucesso.' });
   };
 
   const handleTempChange = (temp: LeadTemperature) => {
     updateLead(lead.id, { temperatura: temp });
+  };
+
+  const handleAssigneeChange = (memberId: string) => {
+    if (!memberId) {
+      updateLead(lead.id, {
+        responsavel: undefined,
+        assignedToUserId: undefined,
+        assignedAt: undefined,
+        assignedByUserId: undefined,
+      });
+      toast({ title: 'Responsável removido', description: 'O lead ficou sem consultor responsável.' });
+      return;
+    }
+
+    const member = teamMembers.find((item) => item.id === memberId);
+    if (!member) return;
+
+    updateLead(lead.id, {
+      responsavel: member.name || member.email || 'Responsável sem nome',
+      assignedToUserId: member.user_id || undefined,
+      assignedAt: new Date().toISOString(),
+      assignedByUserId: access.userId || undefined,
+    });
+
+    toast({
+      title: 'Responsável atualizado',
+      description: `${member.name || member.email} foi vinculado a este lead.`,
+    });
   };
 
   return (
@@ -173,20 +355,67 @@ export default function AdminLeadDetail() {
           {/* Notes */}
           <div className="bg-white rounded-xl p-5 border border-[var(--medium-gray)]">
             <h3 className="font-semibold text-[var(--graphite)] text-sm mb-3">Observações e próxima ação</h3>
-            <textarea
-              value={obs}
-              onChange={(e) => setObs(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--green-accent)]/50 mb-3"
-              placeholder="Observações sobre o lead..."
-            />
-            <input
-              type="text"
-              value={proximaAcao}
-              onChange={(e) => setProximaAcao(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--green-accent)]/50 mb-3"
-              placeholder="Próxima ação..."
-            />
+
+            <label className="block mb-3">
+              <span className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-muted)]">
+                <ClipboardList className="size-3.5" />
+                Observação padronizada
+              </span>
+              <select
+                value={observacaoPadrao}
+                onChange={(e) => setObservacaoPadrao(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[#C47A21]/35"
+              >
+                <option value="">Selecione uma observação</option>
+                {OBSERVATION_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block mb-3">
+              <span className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-muted)]">
+                <ListTodo className="size-3.5" />
+                Próxima ação padronizada
+              </span>
+              <select
+                value={proximaAcaoPadrao}
+                onChange={(e) => setProximaAcaoPadrao(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[#C47A21]/35"
+              >
+                <option value="">Selecione a próxima ação</option>
+                {NEXT_ACTION_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block mb-3">
+              <span className="mb-1 block text-xs font-semibold uppercase text-[var(--text-muted)]">
+                Detalhe complementar opcional
+              </span>
+              <textarea
+                value={observacaoLivre}
+                onChange={(e) => setObservacaoLivre(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[#C47A21]/35"
+                placeholder="Ex.: cliente pediu retorno amanhã às 14h; pediu comparação entre carta de 350 mil e 450 mil..."
+              />
+            </label>
+
+            <label className="block mb-3">
+              <span className="mb-1 block text-xs font-semibold uppercase text-[var(--text-muted)]">
+                Detalhe da próxima ação opcional
+              </span>
+              <input
+                type="text"
+                value={proximaAcao}
+                onChange={(e) => setProximaAcao(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[#C47A21]/35"
+                placeholder="Ex.: retorno em 05/06 às 10h; enviar simulação da carta de 450 mil..."
+              />
+            </label>
+
             <button
               onClick={handleSaveNotes}
               className="px-4 py-2 rounded-lg bg-[var(--deep-blue)] text-white text-sm font-medium hover:bg-[var(--navy)]"
@@ -217,10 +446,39 @@ export default function AdminLeadDetail() {
             <select
               value={lead.status}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--green-accent)]/50"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[#C47A21]/35"
             >
               {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
+          </div>
+
+          {/* Responsible */}
+          <div className="bg-white rounded-xl p-5 border border-[var(--medium-gray)]">
+            <h3 className="font-semibold text-[var(--graphite)] text-sm mb-3">Responsável pelo lead</h3>
+            {canAssignLead ? (
+              <>
+                <select
+                  value={assignedMember?.id || ''}
+                  onChange={(e) => handleAssigneeChange(e.target.value)}
+                  disabled={isLoadingTeam}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--medium-gray)] text-sm focus:outline-none focus:ring-2 focus:ring-[#C47A21]/35 disabled:opacity-60"
+                >
+                  <option value="">Sem responsável</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {(member.name || member.email || 'Usuário sem nome')} · {member.role === 'company_manager' ? 'Gestor' : member.role === 'company_admin' ? 'Contratante' : 'Consultor'}{!member.user_id ? ' · pendente de login' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  Atual: {responsibleLabel}
+                </p>
+              </>
+            ) : (
+              <div className="rounded-lg border border-[var(--medium-gray)] bg-slate-50 px-3 py-2 text-sm text-[var(--graphite)]">
+                {responsibleLabel}
+              </div>
+            )}
           </div>
 
           {/* Temperature */}

@@ -53,7 +53,7 @@ export default function Result() {
     hibrida: 'from-indigo-600 to-indigo-800',
     reorganizacao: 'from-cyan-700 to-blue-800',
     investidor: 'from-orange-600 to-orange-800',
-    emocional: 'from-red-600 to-red-800',
+    emocional: 'from-[#9A5B13] via-[#7A4612] to-[#0F172A]',
   };
 
   return (

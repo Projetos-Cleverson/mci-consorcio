@@ -37,6 +37,12 @@ type DbLead = {
   status: string;
   created_at: string;
   updated_at: string | null;
+  assigned_to_user_id?: string | null;
+  assigned_to_name?: string | null;
+  assigned_at?: string | null;
+  assigned_by_user_id?: string | null;
+  notes?: string | null;
+  next_action?: string | null;
 };
 
 const INTERNAL_TO_DB_PROFILE: Record<ProfileType, string> = {
@@ -59,6 +65,14 @@ const DB_TO_INTERNAL_PROFILE: Record<string, ProfileType> = {
 
 const STATUS_TO_DB: Record<string, string> = {
   'Novo diagnóstico': 'novo_diagnostico',
+  'Contato enviado': 'primeiro_contato_enviado',
+  'Respondeu': 'respondido',
+  'Não respondeu': 'nao_respondido',
+  'Agendado': 'agendado',
+  'Em atendimento': 'em_atendimento',
+  'Proposta apresentada': 'proposta_apresentada',
+  'Venda perdida': 'venda_perdida',
+  'Sem aderência': 'sem_aderencia',
   'Aguardando qualificação': 'novo_diagnostico',
   'Em contato': 'em_atendimento',
   'Qualificado': 'em_atendimento',
@@ -75,12 +89,18 @@ const STATUS_TO_DB: Record<string, string> = {
 
 const DB_TO_STATUS: Record<string, string> = {
   novo_diagnostico: 'Novo diagnóstico',
-  primeiro_contato_enviado: 'Em contato',
-  em_atendimento: 'Em contato',
+  primeiro_contato_enviado: 'Contato enviado',
+  respondido: 'Respondeu',
+  nao_respondido: 'Não respondeu',
+  agendado: 'Agendado',
+  em_atendimento: 'Em atendimento',
   simulacao_solicitada: 'Em análise/simulação',
   proposta_enviada: 'Proposta enviada',
+  proposta_apresentada: 'Proposta apresentada',
   preparacao_futura: 'Retorno futuro',
   perdido: 'Perdido',
+  venda_perdida: 'Venda perdida',
+  sem_aderencia: 'Sem aderência',
   convertido: 'Venda realizada',
 };
 
@@ -147,6 +167,12 @@ function mapLeadToDb(lead: Lead) {
     answers_json: lead.respostas || [],
     score_json: lead.scores || {},
     status: getDbStatus(lead.status),
+    assigned_to_user_id: lead.assignedToUserId || null,
+    assigned_to_name: lead.responsavel || null,
+    assigned_at: lead.assignedAt || null,
+    assigned_by_user_id: lead.assignedByUserId || null,
+    notes: lead.observacoes || null,
+    next_action: lead.proximaAcao || null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -178,8 +204,13 @@ function mapDbToLead(dbLead: DbLead): Lead {
     parceiroWhatsapp: dbLead.partner_whatsapp || undefined,
     temperatura: profile === 'emocional' ? 'risco' : profile === 'hibrida' ? 'premium' : profile === 'investidor' ? 'nutricao' : 'morno',
     status: getUiStatus(dbLead.status),
+    responsavel: dbLead.assigned_to_name || undefined,
+    assignedToUserId: dbLead.assigned_to_user_id || undefined,
+    assignedAt: dbLead.assigned_at || undefined,
+    assignedByUserId: dbLead.assigned_by_user_id || undefined,
     tags: ['mci_consorcio_imobiliario', `perfil_${dbLead.diagnostic_result}`],
-    observacoes: '',
+    observacoes: dbLead.notes || '',
+    proximaAcao: dbLead.next_action || '',
     historico: [{ data: (dbLead.created_at || '').slice(0, 10), acao: 'Lead criado via MCI Consórcio' }],
     dataEntrada: (dbLead.created_at || new Date().toISOString()).slice(0, 10),
   };
@@ -218,10 +249,49 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
   loadData: async () => {
     set({ isLoading: true, syncError: null });
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('mci_consorcio_leads')
         .select('*')
         .order('created_at', { ascending: false });
+
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+
+      if (userId) {
+        const { data: masterAdmin } = await supabase
+          .from('mci_admin_users')
+          .select('role,status')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (!masterAdmin) {
+          const { data: companyUser } = await supabase
+            .from('partner_company_users')
+            .select('role,status,company_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (companyUser) {
+            const { data: company } = await supabase
+              .from('partner_companies')
+              .select('slug')
+              .eq('id', companyUser.company_id)
+              .maybeSingle();
+
+            if (company?.slug) {
+              query = query.eq('partner_slug', company.slug);
+            }
+
+            if (companyUser.role === 'company_consultant') {
+              query = query.eq('assigned_to_user_id', userId);
+            }
+          }
+        }
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       const mapped = (data || []).map((lead) => mapDbToLead(lead as DbLead));
       saveToStorage('mci_consorcio_admin_leads', mapped);

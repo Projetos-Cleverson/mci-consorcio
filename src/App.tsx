@@ -9,12 +9,15 @@ const Result = lazy(() => import('@/pages/Result'));
 const CompanyApplication = lazy(() => import('@/pages/CompanyApplication'));
 const AdminLogin = lazy(() => import('@/pages/admin/Login'));
 const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'));
+const AdminMatriz = lazy(() => import('@/pages/admin/MatrizDashboard'));
 const AdminLeads = lazy(() => import('@/pages/admin/Leads'));
 const AdminLeadDetail = lazy(() => import('@/pages/admin/LeadDetail'));
 const AdminKanban = lazy(() => import('@/pages/admin/Kanban'));
 const AdminPartners = lazy(() => import('@/pages/admin/Partners'));
 const AdminReports = lazy(() => import('@/pages/admin/Reports'));
+const AdminTeam = lazy(() => import('@/pages/admin/Team'));
 const AdminLeadReport = lazy(() => import('@/pages/admin/LeadReport'));
+const AdminChangePassword = lazy(() => import('@/pages/admin/ChangePassword'));
 
 function LoadingScreen() {
   return (
@@ -40,12 +43,15 @@ export default function App() {
           <Route path="/empresas/cadastro" element={<CompanyApplication />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/matriz" element={<AdminMatriz />} />
           <Route path="/admin/leads" element={<AdminLeads />} />
           <Route path="/admin/leads/:id" element={<AdminLeadDetail />} />
           <Route path="/admin/leads/:id/relatorio" element={<AdminLeadReport />} />
           <Route path="/admin/kanban" element={<AdminKanban />} />
           <Route path="/admin/parceiros" element={<AdminPartners />} />
           <Route path="/admin/relatorios" element={<AdminReports />} />
+          <Route path="/admin/equipe" element={<AdminTeam />} />
+          <Route path="/admin/alterar-senha" element={<AdminChangePassword />} />
           
         </Routes>
       </Suspense>

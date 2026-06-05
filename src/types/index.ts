@@ -46,6 +46,9 @@ export interface Lead {
   temperatura: LeadTemperature;
   status: string;
   responsavel?: string;
+  assignedToUserId?: string;
+  assignedAt?: string;
+  assignedByUserId?: string;
   tags: string[];
   observacoes: string;
   proximaAcao?: string;
@@ -64,6 +67,9 @@ export interface HistoricoItem {
   data: string;
   acao: string;
   responsavel?: string;
+  assignedToUserId?: string;
+  assignedAt?: string;
+  assignedByUserId?: string;
 }
 
 export interface PartnerCompany {
@@ -108,4 +114,18 @@ export interface ProfileResult {
   proximoPasso: string;
   cta: string;
   ctaMensagem: string;
+}
+
+
+export interface PartnerCompanyUser {
+  id: string;
+  company_id: string;
+  user_id?: string | null;
+  role: 'company_admin' | 'company_manager' | 'company_consultant' | string;
+  status: 'pending_auth' | 'active' | 'inactive' | 'suspended' | string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
