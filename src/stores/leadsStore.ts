@@ -65,42 +65,50 @@ const DB_TO_INTERNAL_PROFILE: Record<string, ProfileType> = {
 
 const STATUS_TO_DB: Record<string, string> = {
   'Novo diagnóstico': 'novo_diagnostico',
-  'Contato enviado': 'primeiro_contato_enviado',
-  'Respondeu': 'respondido',
-  'Não respondeu': 'nao_respondido',
+  'Contato enviado': 'contato_enviado',
+  'Respondeu': 'respondeu',
+  'Não respondeu': 'nao_respondeu',
   'Agendado': 'agendado',
   'Em atendimento': 'em_atendimento',
   'Proposta apresentada': 'proposta_apresentada',
+  'Venda realizada': 'venda_realizada',
   'Venda perdida': 'venda_perdida',
   'Sem aderência': 'sem_aderencia',
+
+  // Compatibilidade com nomes antigos da interface
   'Aguardando qualificação': 'novo_diagnostico',
   'Em contato': 'em_atendimento',
   'Qualificado': 'em_atendimento',
-  'Em análise/simulação': 'simulacao_solicitada',
-  'Proposta enviada': 'proposta_enviada',
-  'Em negociação': 'proposta_enviada',
-  'Venda realizada': 'convertido',
-  'Nutrição': 'preparacao_futura',
-  'Perdido': 'perdido',
-  'Retorno futuro': 'preparacao_futura',
-  'Sem resposta': 'perdido',
-  'Dados incompletos': 'preparacao_futura',
+  'Em análise/simulação': 'proposta_apresentada',
+  'Proposta enviada': 'proposta_apresentada',
+  'Em negociação': 'proposta_apresentada',
+  'Nutrição': 'novo_diagnostico',
+  'Perdido': 'venda_perdida',
+  'Retorno futuro': 'novo_diagnostico',
+  'Sem resposta': 'nao_respondeu',
+  'Dados incompletos': 'novo_diagnostico',
 };
 
 const DB_TO_STATUS: Record<string, string> = {
   novo_diagnostico: 'Novo diagnóstico',
+  contato_enviado: 'Contato enviado',
+  respondeu: 'Respondeu',
+  nao_respondeu: 'Não respondeu',
+  agendado: 'Agendado',
+  em_atendimento: 'Em atendimento',
+  proposta_apresentada: 'Proposta apresentada',
+  venda_realizada: 'Venda realizada',
+  venda_perdida: 'Venda perdida',
+  sem_aderencia: 'Sem aderência',
+
+  // Compatibilidade com status antigos que possam existir em localStorage/legado
   primeiro_contato_enviado: 'Contato enviado',
   respondido: 'Respondeu',
   nao_respondido: 'Não respondeu',
-  agendado: 'Agendado',
-  em_atendimento: 'Em atendimento',
-  simulacao_solicitada: 'Em análise/simulação',
-  proposta_enviada: 'Proposta enviada',
-  proposta_apresentada: 'Proposta apresentada',
-  preparacao_futura: 'Retorno futuro',
-  perdido: 'Perdido',
-  venda_perdida: 'Venda perdida',
-  sem_aderencia: 'Sem aderência',
+  simulacao_solicitada: 'Proposta apresentada',
+  proposta_enviada: 'Proposta apresentada',
+  preparacao_futura: 'Novo diagnóstico',
+  perdido: 'Venda perdida',
   convertido: 'Venda realizada',
 };
 
@@ -330,9 +338,14 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
       try {
         const updatedLead = get().leads.find((lead) => lead.id === id);
         if (!updatedLead) return;
+        const payload = {
+          ...mapLeadToDb(updatedLead),
+          ...(updates.status ? { status_updated_at: new Date().toISOString() } : {}),
+        };
+
         const { error } = await supabase
           .from('mci_consorcio_leads')
-          .update(mapLeadToDb(updatedLead))
+          .update(payload)
           .eq('id', id);
         if (error) throw error;
       } catch (error) {

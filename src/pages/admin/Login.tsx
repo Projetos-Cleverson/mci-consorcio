@@ -88,6 +88,7 @@ export default function AdminLogin() {
 
             <input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);
