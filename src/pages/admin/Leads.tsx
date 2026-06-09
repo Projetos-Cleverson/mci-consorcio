@@ -282,9 +282,16 @@ export default function AdminLeads() {
                       <div>
                         <p className="font-medium text-[var(--graphite)]">{lead.dados.nome}</p>
                         <p className="text-xs text-[var(--text-muted)]">{formatPhone(lead.dados.whatsapp)}</p>
-                        <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold lg:hidden ${statusColors[lead.status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                          {lead.status}
-                        </span>
+                        <select
+                          value={lead.status}
+                          onChange={(event) => moveLead(lead.id, event.target.value)}
+                          className={`mt-2 block w-full max-w-[190px] rounded-full border px-2 py-1 text-[11px] font-semibold outline-none lg:hidden ${statusColors[lead.status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}
+                          aria-label={`Alterar status de ${lead.dados.nome}`}
+                        >
+                          {STATUS_OPTIONS.map((status) => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell text-[var(--text-muted)]">
