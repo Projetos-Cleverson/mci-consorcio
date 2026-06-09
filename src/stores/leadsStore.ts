@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Lead, Partner, ProfileScores, ProfileType } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { getProductPermission } from '@/lib/productAccess';
 
 interface LeadsState {
   leads: Lead[];
@@ -16,6 +17,14 @@ interface LeadsState {
   moveLead: (id: string, newStatus: string) => void;
   addPartner: (partner: Partner) => void;
   updatePartner: (id: string, updates: Partial<Partner>) => void;
+}
+
+const PRODUCT_KEY = 'mci_consorcio_imobiliario';
+const AUTH_STORAGE_KEY = 'mci_consorcio_admin_auth';
+
+function clearAuthStorage() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  localStorage.removeItem('admin_auth');
 }
 
 type DbLead = {
@@ -227,74 +236,95 @@ function mapDbToLead(dbLead: DbLead): Lead {
 export const useLeadsStore = create<LeadsState>((set, get) => ({
   leads: loadFromStorage<Lead[]>('mci_consorcio_admin_leads', []),
   partners: loadFromStorage<Partner[]>('mci_consorcio_admin_partners', []),
-  isAuthenticated: loadFromStorage<boolean>('admin_auth', false),
+  isAuthenticated: loadFromStorage<boolean>(AUTH_STORAGE_KEY, loadFromStorage<boolean>('admin_auth', false)),
   isLoading: false,
   syncError: null,
 
   login: async (email, password) => {
     set({ isLoading: true, syncError: null });
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
       if (error) throw error;
       if (!data.session) throw new Error('Sessão não criada.');
+
+      const permission = await getProductPermission(PRODUCT_KEY);
+
+      if (!permission) {
+        await supabase.auth.signOut();
+        clearAuthStorage();
+        throw new Error('Usuário sem permissão para acessar o MCI Consórcio.');
+      }
+
       set({ isAuthenticated: true, isLoading: false });
-      saveToStorage('admin_auth', true);
+      saveToStorage(AUTH_STORAGE_KEY, true);
+      localStorage.removeItem('admin_auth');
+
       await get().loadData();
+
       return true;
     } catch (error) {
-      set({ isAuthenticated: false, isLoading: false, syncError: error instanceof Error ? error.message : 'Erro ao fazer login.' });
-      localStorage.removeItem('admin_auth');
+      set({
+        isAuthenticated: false,
+        isLoading: false,
+        syncError: error instanceof Error ? error.message : 'Erro ao fazer login.',
+      });
+
+      clearAuthStorage();
+
       return false;
     }
   },
 
   logout: async () => {
     await supabase.auth.signOut();
-    set({ isAuthenticated: false });
-    localStorage.removeItem('admin_auth');
+    set({ isAuthenticated: false, leads: [] });
+    saveToStorage('mci_consorcio_admin_leads', []);
+    clearAuthStorage();
   },
 
   loadData: async () => {
     set({ isLoading: true, syncError: null });
     try {
+      const permission = await getProductPermission(PRODUCT_KEY);
+
+      if (!permission) {
+        await supabase.auth.signOut();
+        clearAuthStorage();
+        saveToStorage('mci_consorcio_admin_leads', []);
+        set({ isAuthenticated: false, leads: [], isLoading: false });
+        throw new Error('Usuário sem permissão para acessar o MCI Consórcio.');
+      }
+
       let query = supabase
         .from('mci_consorcio_leads')
         .select('*')
         .order('created_at', { ascending: false });
 
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      const isGlobalAccess =
+        permission.role === 'master_admin' || permission.role === 'admin_produto';
 
-      if (userId) {
-        const { data: masterAdmin } = await supabase
-          .from('mci_admin_users')
-          .select('role,status')
-          .eq('user_id', userId)
-          .eq('status', 'active')
-          .maybeSingle();
-
-        if (!masterAdmin) {
-          const { data: companyUser } = await supabase
-            .from('partner_company_users')
-            .select('role,status,company_id')
-            .eq('user_id', userId)
-            .eq('status', 'active')
+      if (!isGlobalAccess) {
+        if (!permission.company_id) {
+          query = query.eq('partner_slug', '__sem_empresa__');
+        } else {
+          const { data: company, error: companyError } = await supabase
+            .from('partner_companies')
+            .select('slug')
+            .eq('id', permission.company_id)
             .maybeSingle();
 
-          if (companyUser) {
-            const { data: company } = await supabase
-              .from('partner_companies')
-              .select('slug')
-              .eq('id', companyUser.company_id)
-              .maybeSingle();
+          if (companyError) throw companyError;
 
-            if (company?.slug) {
-              query = query.eq('partner_slug', company.slug);
-            }
+          if (company?.slug) {
+            query = query.eq('partner_slug', company.slug);
+          } else {
+            query = query.eq('partner_slug', '__empresa_nao_encontrada__');
+          }
 
-            if (companyUser.role === 'company_consultant') {
-              query = query.eq('assigned_to_user_id', userId);
-            }
+          if (permission.role === 'consultor') {
+            query = query.eq('assigned_to_user_id', permission.user_id);
           }
         }
       }

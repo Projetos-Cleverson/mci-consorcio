@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Lead, ProfileScores, ProfileType } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { getProductPermission } from '@/lib/productAccess';
 
 type MatrixDbLead = {
   lead_id: string;
@@ -30,6 +31,8 @@ interface MatrixLeadsState {
   loadData: () => Promise<void>;
   moveLead: (id: string, newStatus: string) => void;
 }
+
+const PRODUCT_KEY = 'mci_consorcio_imobiliario';
 
 const DB_TO_STATUS: Record<string, string> = {
   novo_diagnostico: 'Novo diagnóstico',
@@ -199,10 +202,42 @@ export const useMatrixStore = create<MatrixLeadsState>((set, get) => ({
     set({ isLoading: true, syncError: null });
 
     try {
-      const { data, error } = await supabase
+      const permission = await getProductPermission(PRODUCT_KEY);
+
+      if (!permission) {
+        throw new Error('Usuário sem permissão para acessar o MCI Consórcio.');
+      }
+
+      let query = supabase
         .from('epsa_all_leads')
         .select('*')
+        .eq('product_key', PRODUCT_KEY)
         .order('created_at', { ascending: false });
+
+      const isGlobalAccess =
+        permission.role === 'master_admin' || permission.role === 'admin_produto';
+
+      if (!isGlobalAccess && permission.company_id) {
+        const { data: company, error: companyError } = await supabase
+          .from('partner_companies')
+          .select('slug')
+          .eq('id', permission.company_id)
+          .maybeSingle();
+
+        if (companyError) throw companyError;
+
+        if (company?.slug) {
+          query = query.eq('partner_slug', company.slug);
+        } else {
+          query = query.eq('partner_slug', '__empresa_nao_encontrada__');
+        }
+      }
+
+      if (!isGlobalAccess && !permission.company_id) {
+        query = query.eq('partner_slug', '__sem_empresa__');
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
