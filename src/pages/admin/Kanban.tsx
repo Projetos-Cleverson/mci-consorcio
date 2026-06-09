@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useLeadsStore } from '@/stores/leadsStore';
 import { useMatrixStore } from '@/stores/matrixStore';
@@ -22,6 +22,7 @@ export default function AdminKanban() {
   const access = useAdminAccess();
   const productStore = useLeadsStore();
   const matrixStore = useMatrixStore();
+  const [openStatusLeadId, setOpenStatusLeadId] = useState<string | null>(null);
 
   useEffect(() => {
     if (access.isLoading) return;
@@ -41,8 +42,21 @@ export default function AdminKanban() {
     moveLead(leadId, newStatus);
   };
 
-  const handleStatusChange = (leadId: string, newStatus: string) => {
+  const handleMobileStatusChange = (leadId: string, newStatus: string) => {
     moveLead(leadId, newStatus);
+    setOpenStatusLeadId(null);
+  };
+
+  const getNextStatus = (currentStatus: string) => {
+    const currentIndex = KANBAN_COLUMNS.indexOf(currentStatus);
+    if (currentIndex < 0 || currentIndex >= KANBAN_COLUMNS.length - 1) return null;
+    return KANBAN_COLUMNS[currentIndex + 1];
+  };
+
+  const getPreviousStatus = (currentStatus: string) => {
+    const currentIndex = KANBAN_COLUMNS.indexOf(currentStatus);
+    if (currentIndex <= 0) return null;
+    return KANBAN_COLUMNS[currentIndex - 1];
   };
 
   return (
@@ -74,10 +88,10 @@ export default function AdminKanban() {
         Novo diagnóstico → Contato enviado → Respondeu → Agendado → Em atendimento → Proposta apresentada → Venda realizada.
       </div>
 
-      {/* Versão mobile: no celular, o navegador costuma conflitar drag/drop com rolagem horizontal. */}
-      <div className="md:hidden space-y-4 pb-4">
-        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-          <strong>Uso no celular:</strong> altere o status pelo seletor dentro do card.
+      {/* Versão mobile: não usa select nativo, para evitar popup gigante no celular */}
+      <div className="space-y-3 md:hidden">
+        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <strong>Uso no celular:</strong> use os botões do card para avançar, voltar ou escolher uma etapa.
         </div>
 
         {KANBAN_COLUMNS.map((column) => {
@@ -86,58 +100,109 @@ export default function AdminKanban() {
           return (
             <section
               key={column}
-              className="rounded-xl border border-[var(--medium-gray)] bg-white overflow-hidden"
+              className="overflow-hidden rounded-xl border border-[var(--medium-gray)] bg-white"
             >
               <div className="flex items-center justify-between border-b border-[var(--medium-gray)] px-4 py-3">
-                <h2 className="text-sm font-semibold text-[var(--graphite)]">
-                  {column}
-                </h2>
-                <span className="text-sm font-bold text-[var(--deep-blue)] tabular-nums">
+                <h2 className="text-sm font-semibold text-[var(--deep-blue)]">{column}</h2>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-[var(--deep-blue)]">
                   {columnLeads.length}
                 </span>
               </div>
 
               <div className="space-y-3 p-3">
                 {columnLeads.length === 0 ? (
-                  <p className="py-5 text-center text-sm text-[var(--text-muted)]">
-                    Nenhum lead.
+                  <p className="py-4 text-center text-xs text-[var(--text-muted)]">
+                    Nenhum lead nesta etapa.
                   </p>
                 ) : (
-                  columnLeads.map((lead) => (
-                    <article
-                      key={lead.id}
-                      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-                    >
-                      <div className="space-y-1">
-                        <h3 className="font-semibold text-[var(--graphite)]">
-                          {lead.dados?.nome || 'Lead sem nome'}
-                        </h3>
-                        <p className="text-sm text-[var(--text-muted)]">
-                          {[lead.dados?.cidade, lead.dados?.estado].filter(Boolean).join('/') || 'Cidade não informada'}
-                        </p>
-                        {lead.perfilPrincipal && (
-                          <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                            {lead.perfilPrincipal}
-                          </span>
-                        )}
-                      </div>
+                  columnLeads.map((lead) => {
+                    const previousStatus = getPreviousStatus(lead.status);
+                    const nextStatus = getNextStatus(lead.status);
+                    const isOpen = openStatusLeadId === lead.id;
 
-                      <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                        Alterar status
-                      </label>
-                      <select
-                        value={lead.status}
-                        onChange={(event) => handleStatusChange(lead.id, event.target.value)}
-                        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[var(--deep-blue)] focus:ring-2 focus:ring-[var(--deep-blue)]/10"
+                    return (
+                      <article
+                        key={lead.id}
+                        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                       >
-                        {KANBAN_COLUMNS.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    </article>
-                  ))
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-base font-semibold text-[var(--graphite)]">
+                              {lead.dados.nome}
+                            </h3>
+                            <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+                              {[lead.dados.cidade, lead.dados.estado].filter(Boolean).join('/')}
+                            </p>
+                          </div>
+
+                          <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                            {lead.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {lead.perfilPrincipal && (
+                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                              {lead.perfilPrincipal}
+                            </span>
+                          )}
+
+                          {lead.responsavel && (
+                            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                              {lead.responsavel}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            disabled={!previousStatus}
+                            onClick={() => previousStatus && handleMobileStatusChange(lead.id, previousStatus)}
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Voltar
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!nextStatus}
+                            onClick={() => nextStatus && handleMobileStatusChange(lead.id, nextStatus)}
+                            className="rounded-lg bg-[var(--deep-blue)] px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Avançar
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setOpenStatusLeadId(isOpen ? null : lead.id)}
+                          className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
+                        >
+                          {isOpen ? 'Fechar etapas' : 'Escolher outra etapa'}
+                        </button>
+
+                        {isOpen && (
+                          <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+                            {KANBAN_COLUMNS.map((status) => (
+                              <button
+                                key={status}
+                                type="button"
+                                onClick={() => handleMobileStatusChange(lead.id, status)}
+                                className={`rounded-lg px-3 py-2 text-left text-sm font-medium ${
+                                  lead.status === status
+                                    ? 'bg-[var(--deep-blue)] text-white'
+                                    : 'bg-white text-slate-700'
+                                }`}
+                              >
+                                {status}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })
                 )}
               </div>
             </section>
@@ -145,14 +210,14 @@ export default function AdminKanban() {
         })}
       </div>
 
-      {/* Versão desktop/tablet: mantém o Kanban com drag and drop. */}
+      {/* Versão desktop/tablet: mantém o Kanban com drag and drop */}
       <div className="hidden overflow-x-auto pb-4 md:block">
-        <div className="flex gap-4 min-w-max">
+        <div className="flex min-w-max gap-4">
           {KANBAN_COLUMNS.map((column) => (
             <KanbanColumn
               key={column}
               title={column}
-              leads={leads.filter((lead) => lead.status === column)}
+              leads={leads.filter((l) => l.status === column)}
               onDrop={handleDrop}
             />
           ))}
