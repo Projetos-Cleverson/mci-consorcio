@@ -7,6 +7,8 @@ const Quiz = lazy(() => import('@/pages/Quiz'));
 const LeadCapture = lazy(() => import('@/pages/LeadCapture'));
 const Result = lazy(() => import('@/pages/Result'));
 const CompanyApplication = lazy(() => import('@/pages/CompanyApplication'));
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
+const TermsOfUse = lazy(() => import('@/pages/TermsOfUse'));
 const AdminLogin = lazy(() => import('@/pages/admin/Login'));
 const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'));
 const AdminMatriz = lazy(() => import('@/pages/admin/MatrizDashboard'));
@@ -41,6 +43,8 @@ export default function App() {
           <Route path="/dados" element={<LeadCapture />} />
           <Route path="/resultado" element={<Result />} />
           <Route path="/empresas/cadastro" element={<CompanyApplication />} />
+          <Route path="/privacidade" element={<PrivacyPolicy />} />
+          <Route path="/termos" element={<TermsOfUse />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/matriz" element={<AdminMatriz />} />

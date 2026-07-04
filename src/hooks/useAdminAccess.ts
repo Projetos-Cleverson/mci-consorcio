@@ -114,7 +114,7 @@ export function useAdminAccess(): AdminAccess {
         if (companyUserError) throw companyUserError;
 
         if (companyUser) {
-          let company: any = null;
+          let company: { id: string; name: string; display_name?: string | null; slug: string; status?: string | null } | null = null;
 
           if (companyUser.company_id) {
             const { data: companyData, error: companyError } = await supabase

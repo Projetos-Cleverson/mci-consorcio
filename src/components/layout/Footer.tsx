@@ -16,13 +16,13 @@ export default function Footer() {
                   MCI
                 </p>
                 <p className="text-xs text-white/55">
-                  Mapa da Compra Imobiliária
+                  Diagnóstico de Compra Planejada
                 </p>
               </div>
             </div>
 
             <p className="text-sm leading-relaxed text-white/60">
-              Uma ferramenta da Universidade EPSA para ajudar clientes a tomarem decisões imobiliárias com mais clareza, estratégia e responsabilidade.
+              Produto da EPSA Core, operado pela GVS Imóveis, para apoiar decisões de consórcio com mais clareza e responsabilidade.
             </p>
           </div>
 
@@ -49,7 +49,7 @@ export default function Footer() {
 
         <div className="mt-8 border-t border-white/10 pt-6 text-center">
           <p className="text-xs text-white/40">
-            © {new Date().getFullYear()} MCI Consórcio Imobiliário. Powered by Universidade EPSA.
+            © {new Date().getFullYear()} MCI Consórcio — produto da EPSA Core.
           </p>
         </div>
       </div>

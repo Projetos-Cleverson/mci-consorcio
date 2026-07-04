@@ -224,6 +224,21 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: updateError.message }, 500);
     }
 
+    const { error: permissionError } = await adminClient.rpc(
+      'set_partner_company_user_product_access',
+      {
+        p_member_id: member.id,
+        p_product_key: 'mci_consorcio_imobiliario',
+        p_enabled: true,
+      },
+    );
+
+    if (permissionError) {
+      return jsonResponse({
+        error: `Login criado, mas o acesso ao MCI Consórcio não foi sincronizado: ${permissionError.message}`,
+      }, 500);
+    }
+
     return jsonResponse({
       success: true,
       action: 'create_login',

@@ -23,7 +23,7 @@ export default function Header() {
         <div className="hidden items-center gap-2 text-xs font-medium text-slate-500 md:flex">
           <span>Uma ferramenta da</span>
           <span className="font-semibold text-[var(--deep-blue)]">
-            Universidade EPSA
+            EPSA Core
           </span>
         </div>
 
