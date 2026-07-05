@@ -34,3 +34,7 @@ Thumbs.db
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Cloudflare local state
+.wrangler/
+
