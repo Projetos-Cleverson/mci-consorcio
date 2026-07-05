@@ -111,6 +111,8 @@ export default function Landing() {
   const { partnerSlug: routePartnerSlug } = useParams();
   const { partnerSlug, buildPath } = useFunnelContext(routePartnerSlug);
   const diagnosticoLink = buildPath('/diagnostico');
+  const privacyLink = buildPath(APP_CONFIG.privacyPolicyPath);
+  const termsLink = buildPath(APP_CONFIG.termsPath);
   const homeLink = partnerSlug !== 'direto' ? buildPath(`/p/${partnerSlug}`) : buildPath('/');
   const { partnerCompany, loading: partnerLoading, error: partnerError } = usePartnerCompany(partnerSlug);
   const partnerDisplayName = getPartnerDisplayName(partnerCompany);
@@ -732,10 +734,10 @@ export default function Landing() {
               <a href="#faq" className="hover:text-white">
                 Perguntas frequentes
               </a>
-              <Link to={APP_CONFIG.privacyPolicyPath} className="hover:text-white">
+              <Link to={privacyLink} className="hover:text-white">
                 Política de Privacidade
               </Link>
-              <Link to={APP_CONFIG.termsPath} className="hover:text-white">
+              <Link to={termsLink} className="hover:text-white">
                 Termos de Uso
               </Link>
             </div>
