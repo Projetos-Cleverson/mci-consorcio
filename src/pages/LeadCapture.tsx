@@ -36,7 +36,7 @@ export default function LeadCapture() {
   const effectiveWhatsapp = partnerWhatsapp || APP_CONFIG.temporaryOperationsWhatsapp;
   const usesEpsaTemporaryContact = !partnerWhatsapp;
   const { toast } = useToast();
-  const { scores, perfilPrincipal, perfilSecundario, answers, calculateResult } = useQuizStore();
+  const calculateResult = useQuizStore((state) => state.calculateResult);
   const { addLead } = useLeadsStore();
 
   const [form, setForm] = useState<LeadData>({
@@ -91,11 +91,16 @@ export default function LeadCapture() {
       return;
     }
 
-    let perfilFinal = perfilPrincipal;
-    if (!perfilFinal && answers.length > 0) {
+    let resultState = useQuizStore.getState();
+    if (!resultState.perfilPrincipal && resultState.answers.length > 0) {
       calculateResult();
-      perfilFinal = useQuizStore.getState().perfilPrincipal;
+      resultState = useQuizStore.getState();
     }
+
+    const perfilFinal = resultState.perfilPrincipal;
+    const perfilSecundarioFinal = resultState.perfilSecundario;
+    const answersFinal = resultState.answers;
+    const scoresFinal = resultState.scores;
 
     if (!perfilFinal) {
       navigate(buildPath('/diagnostico'));
@@ -107,8 +112,8 @@ export default function LeadCapture() {
     try {
       const now = new Date().toISOString();
       const tracking = captureTrackingContext(new URLSearchParams(window.location.search), partner);
-      const temperatura = classifyTemperature(perfilFinal, answers);
-      const tags = generateLeadTags(perfilFinal, temperatura, answers);
+      const temperatura = classifyTemperature(perfilFinal, answersFinal);
+      const tags = generateLeadTags(perfilFinal, temperatura, answersFinal);
 
       const consent: LeadConsentContext = {
         version: APP_CONFIG.consentVersion,
@@ -123,10 +128,10 @@ export default function LeadCapture() {
       const lead: Lead = {
         id: submissionId,
         dados: form,
-        respostas: answers,
-        scores,
+        respostas: answersFinal,
+        scores: scoresFinal,
         perfilPrincipal: perfilFinal,
-        perfilSecundario: perfilSecundario || undefined,
+        perfilSecundario: perfilSecundarioFinal || undefined,
         origem: tracking.params.utm_source
           ? `Tráfego pago: ${tracking.params.utm_source}`
           : partnerDisplayName
@@ -141,11 +146,11 @@ export default function LeadCapture() {
         observacoes: '',
         historico: [{ data: now.slice(0, 10), acao: `Lead criado via MCI Consórcio (${temperatura})` }],
         dataEntrada: now.slice(0, 10),
-        faixaImovel: getPropertyRange(answers),
-        faixaRenda: getIncomeRange(answers),
-        entradaDisponivel: getDownPaymentRange(answers),
-        urgencia: getUrgency(answers),
-        objetivo: getObjective(answers),
+        faixaImovel: getPropertyRange(answersFinal),
+        faixaRenda: getIncomeRange(answersFinal),
+        entradaDisponivel: getDownPaymentRange(answersFinal),
+        urgencia: getUrgency(answersFinal),
+        objetivo: getObjective(answersFinal),
         produtoRecomendado: getRecommendedProduct(perfilFinal),
         tracking: tracking as LeadTrackingContext,
         consent,

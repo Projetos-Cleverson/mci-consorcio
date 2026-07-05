@@ -156,8 +156,14 @@ function getUiStatus(status?: string) {
   return DB_TO_STATUS[status || 'novo_diagnostico'] || 'Novo diagnóstico';
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function safeScores(value: unknown): ProfileScores {
-  const source = (value && typeof value === 'object') ? value as Record<string, number> : {};
+  const source = asRecord(value);
   return {
     financiamento: Number(source.financiamento || source.consorcio_planejado || 0),
     consorcio: Number(source.consorcio || source.lance_estrategico || 0),
@@ -166,6 +172,17 @@ function safeScores(value: unknown): ProfileScores {
     investidor: Number(source.investidor || source.preparacao_consorcio || 0),
     emocional: Number(source.emocional || source.analise_aderencia_necessaria || 0),
   };
+}
+
+function getStoredSecondaryProfile(value: unknown): ProfileType | undefined {
+  const result = asRecord(asRecord(value)._result);
+  const stored = result.secondary_profile;
+
+  if (typeof stored !== 'string' || !stored) return undefined;
+  if (stored in DB_TO_INTERNAL_PROFILE) return getInternalProfile(stored);
+  if (stored in INTERNAL_TO_DB_PROFILE) return stored as ProfileType;
+
+  return undefined;
 }
 
 function mapLeadToDb(lead: Lead) {
@@ -188,6 +205,12 @@ function mapLeadToDb(lead: Lead) {
       ...(lead.scores || {}),
       _tracking: lead.tracking || null,
       _consent: lead.consent || null,
+      _result: {
+        primary_profile: getDbProfile(lead.perfilPrincipal),
+        secondary_profile: lead.perfilSecundario
+          ? getDbProfile(lead.perfilSecundario)
+          : null,
+      },
       _context: {
         origem: lead.origem,
         temperatura: lead.temperatura,
@@ -207,7 +230,6 @@ function mapLeadToDb(lead: Lead) {
     assigned_by_user_id: lead.assignedByUserId || null,
     notes: lead.observacoes || null,
     next_action: lead.proximaAcao || null,
-    updated_at: new Date().toISOString(),
   };
 }
 
@@ -232,6 +254,7 @@ function mapDbToLead(dbLead: DbLead): Lead {
     respostas: answers,
     scores,
     perfilPrincipal: profile,
+    perfilSecundario: getStoredSecondaryProfile(dbLead.score_json),
     origem: partnerName ? `Empresa parceira: ${partnerName}` : 'MCI Consórcio Imobiliário',
     parceiro: partner !== 'direto' ? partner : undefined,
     parceiroNome: partnerName || undefined,
@@ -383,10 +406,7 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
       try {
         const updatedLead = get().leads.find((lead) => lead.id === id);
         if (!updatedLead) return;
-        const payload = {
-          ...mapLeadToDb(updatedLead),
-          ...(updates.status ? { status_updated_at: new Date().toISOString() } : {}),
-        };
+        const payload = mapLeadToDb(updatedLead);
 
         const { error } = await supabase
           .from('mci_consorcio_leads')
