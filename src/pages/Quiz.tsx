@@ -1,20 +1,16 @@
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuizStore } from '@/stores/quizStore';
 import { QUESTIONS } from '@/constants/questions';
 import ProgressBar from '@/components/features/ProgressBar';
 import { ArrowLeft, ArrowRight, Building2, Circle, CheckCircle2 } from 'lucide-react';
 import { getPartnerDisplayName, usePartnerCompany } from '@/hooks/usePartnerCompany';
+import { useFunnelContext } from '@/hooks/useFunnelContext';
 
 export default function Quiz() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  const partner = searchParams.get('partner');
-  const { partnerCompany } = usePartnerCompany(partner);
+  const { partnerSlug, buildPath } = useFunnelContext();
+  const { partnerCompany } = usePartnerCompany(partnerSlug);
   const partnerDisplayName = getPartnerDisplayName(partnerCompany);
-
-  const withPartner = (path: string) =>
-    partner ? `${path}?partner=${encodeURIComponent(partner)}` : path;
 
   const {
     currentStep,
@@ -42,7 +38,7 @@ export default function Quiz() {
 
     if (isLastStep) {
       calculateResult();
-      navigate(withPartner('/dados'));
+      navigate(buildPath('/dados'));
       return;
     }
 
@@ -52,7 +48,7 @@ export default function Quiz() {
 
   const handlePrev = () => {
     if (currentStep === 0) {
-      navigate(partner ? `/?partner=${encodeURIComponent(partner)}` : '/');
+      navigate(partnerSlug !== 'direto' ? buildPath(`/p/${partnerSlug}`) : buildPath('/'));
       return;
     }
 
@@ -75,7 +71,7 @@ export default function Quiz() {
 
             {partnerDisplayName && (
               <p className="text-[12px] font-semibold text-[var(--deep-blue)]">
-                {partnerDisplayName} · Parceiro autorizado
+                Atendimento por {partnerDisplayName}, empresa parceira do MCI
               </p>
             )}
           </div>

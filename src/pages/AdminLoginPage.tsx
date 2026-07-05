@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
       localStorage.setItem(LOCAL_ADMIN_KEY, "true");
       toast.success("Acesso liberado.");
       navigate("/admin", { replace: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       toast.error("Não foi possível entrar. Verifique e-mail e senha.");
     } finally {
@@ -150,7 +150,7 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="text-xs text-slate-400 text-center mt-5">
-          Produto do ecossistema MCI · Universidade EPSA
+          Produto do ecossistema MCI · EPSA Core
         </p>
       </section>
     </main>

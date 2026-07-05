@@ -22,7 +22,7 @@ export function usePartnerCompany(slug?: string | null): PartnerState {
   const normalizedSlug = useMemo(() => (slug || '').trim().toLowerCase(), [slug]);
   const [state, setState] = useState<PartnerState>({
     partnerCompany: null,
-    loading: Boolean(normalizedSlug),
+    loading: Boolean(normalizedSlug && normalizedSlug !== 'direto'),
     error: null,
   });
 
@@ -44,8 +44,8 @@ export function usePartnerCompany(slug?: string | null): PartnerState {
 
       try {
         const { data, error } = await supabase
-          .from('partner_companies')
-          .select('id,name,slug,display_name,logo_url,commercial_whatsapp,responsible_name,responsible_email,responsible_phone,city,state,primary_color,secondary_color,status')
+          .from('partner_companies_public')
+          .select('id,name,slug,display_name,logo_url,commercial_whatsapp,city,state,primary_color,secondary_color,status')
           .eq('slug', normalizedSlug)
           .in('status', ['active', 'pilot'])
           .maybeSingle();

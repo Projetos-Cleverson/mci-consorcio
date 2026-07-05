@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuizStore } from '@/stores/quizStore';
 import { PROFILES } from '@/constants/profiles';
 import { ProfileType } from '@/types';
 import { APP_CONFIG } from '@/constants/config';
+import { useFunnelContext } from '@/hooks/useFunnelContext';
+import { readResultContext } from '@/lib/resultContext';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2,
@@ -18,33 +20,35 @@ import {
 
 export default function Result() {
   const navigate = useNavigate();
+  const { partnerSlug, buildPath } = useFunnelContext();
   const { perfilPrincipal, perfilSecundario, reset } = useQuizStore();
-  const partnerContext = (() => {
-    try { return JSON.parse(localStorage.getItem('mci_partner_context') || '{}') as { display_name?: string; commercial_whatsapp?: string; slug?: string }; }
-    catch { return {}; }
-  })();
-  const partnerDisplayName = partnerContext.display_name || '';
-  const partnerWhatsapp = (partnerContext.commercial_whatsapp || APP_CONFIG.whatsappNumber).replace(/\D/g, '');
+  const resultContext = useMemo(() => readResultContext(), []);
+  const partnerDisplayName = resultContext?.partnerDisplayName || '';
+  const partnerWhatsapp = (resultContext?.contactWhatsapp || APP_CONFIG.temporaryOperationsWhatsapp).replace(/\D/g, '');
+  const usesEpsaTemporaryContact = resultContext?.contactSource === 'epsa_temporary';
 
   useEffect(() => {
-    if (!perfilPrincipal) {
-      const saved = localStorage.getItem('quiz_principal');
-      if (!saved) navigate('/diagnostico');
-    }
-  }, [perfilPrincipal, navigate]);
+    const savedProfile = sessionStorage.getItem('quiz_principal');
+    const resultBelongsToJourney = resultContext?.partnerSlug === partnerSlug;
 
-  const profileId = perfilPrincipal || (localStorage.getItem('quiz_principal') as ProfileType);
-  const secondaryId = perfilSecundario || (localStorage.getItem('quiz_secundario') as ProfileType | null);
+    if (!resultContext?.leadId || !resultBelongsToJourney || (!perfilPrincipal && !savedProfile)) {
+      navigate(buildPath('/diagnostico'), { replace: true });
+    }
+  }, [perfilPrincipal, navigate, buildPath, resultContext, partnerSlug]);
+
+  const profileId = perfilPrincipal || (sessionStorage.getItem('quiz_principal') as ProfileType);
+  const secondaryId = perfilSecundario || (sessionStorage.getItem('quiz_secundario') as ProfileType | null);
   const profile = PROFILES.find((p) => p.id === profileId);
   const secondary = secondaryId ? PROFILES.find((p) => p.id === secondaryId) : null;
 
   if (!profile) return null;
 
-  const whatsappUrl = `https://wa.me/${partnerWhatsapp}?text=${encodeURIComponent(profile.ctaMensagem)}`;
+  const whatsappMessage = `${profile.ctaMensagem}\n\nCódigo do diagnóstico: ${resultContext?.leadId.slice(0, 8) || 'não informado'}`;
+  const whatsappUrl = `https://wa.me/${partnerWhatsapp}?text=${encodeURIComponent(whatsappMessage)}`;
 
   const handleRestart = () => {
     reset();
-    navigate('/diagnostico');
+    navigate(buildPath('/diagnostico'));
   };
 
   const profileColors: Record<string, string> = {
@@ -70,7 +74,7 @@ export default function Result() {
               </span>
               {partnerDisplayName && (
                 <p className="text-[12px] font-semibold text-[var(--deep-blue)]">
-                  {partnerDisplayName} · Parceiro autorizado
+                  Atendimento por {partnerDisplayName}, empresa parceira do MCI
                 </p>
               )}
             </div>
@@ -163,7 +167,7 @@ export default function Result() {
 
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75">
                   {partnerDisplayName
-                    ? `${partnerDisplayName}, parceiro autorizado, pode explicar o resultado, alinhar expectativas e avaliar se uma estratégia de consórcio faz sentido para seu momento.`
+                    ? `${partnerDisplayName}, empresa parceira do MCI, pode explicar o resultado, alinhar expectativas e avaliar se uma estratégia de consórcio faz sentido para seu momento.`
                     : 'Um consultor pode explicar o resultado, alinhar expectativas e avaliar se uma estratégia de consórcio faz sentido para seu momento.'}
                 </p>
               </div>
@@ -182,6 +186,14 @@ export default function Result() {
             </div>
           </motion.div>
 
+          {usesEpsaTemporaryContact && partnerDisplayName && (
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+              <p className="text-xs leading-relaxed text-amber-950">
+                O canal comercial próprio de {partnerDisplayName} ainda está sendo configurado. O botão abaixo utiliza temporariamente o canal institucional da EPSA para receber seu primeiro atendimento.
+              </p>
+            </div>
+          )}
+
           <div className="mt-6 rounded-xl border border-[var(--medium-gray)] bg-white p-5">
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[var(--green-accent)]" />
@@ -192,7 +204,7 @@ export default function Result() {
           </div>
 
           <div className="mt-6 flex justify-center">
-            <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-[var(--deep-blue)] hover:text-[var(--green-accent)]">
+            <Link to={partnerSlug !== 'direto' ? buildPath(`/p/${partnerSlug}`) : buildPath('/')} className="inline-flex items-center gap-2 text-sm font-medium text-[var(--deep-blue)] hover:text-[var(--green-accent)]">
               Voltar à página inicial
               <ArrowRight className="size-4" />
             </Link>

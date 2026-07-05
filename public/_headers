@@ -1,0 +1,27 @@
+# Security headers for Cloudflare Pages static responses.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+
+# Keep operational and personal-data routes out of search indexes.
+/admin/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/dados*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/resultado*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+/diagnostico*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+# Never index Cloudflare's generated pages.dev hostnames or previews.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex, nofollow, noarchive

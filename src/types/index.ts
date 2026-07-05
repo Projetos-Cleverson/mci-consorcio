@@ -30,6 +30,27 @@ export interface LeadData {
   aceiteContato: boolean;
 }
 
+export interface LeadTrackingContext {
+  partner_slug: string;
+  landing_url: string;
+  referrer: string;
+  captured_at: string;
+  last_url: string;
+  device_category: 'mobile' | 'tablet' | 'desktop' | 'unknown';
+  user_agent: string;
+  params: Record<string, string | undefined>;
+}
+
+export interface LeadConsentContext {
+  version: string;
+  accepted_at: string;
+  partner_slug: string;
+  partner_name: string;
+  privacy_policy_path: string;
+  terms_path: string;
+  text_snapshot: string;
+}
+
 export type LeadTemperature = 'morno' | 'quente' | 'nutricao' | 'premium' | 'risco';
 
 export interface Lead {
@@ -60,6 +81,8 @@ export interface Lead {
   urgencia?: string;
   objetivo?: string;
   produtoRecomendado?: string;
+  tracking?: LeadTrackingContext;
+  consent?: LeadConsentContext;
 }
 
 
@@ -79,9 +102,6 @@ export interface PartnerCompany {
   display_name?: string | null;
   logo_url?: string | null;
   commercial_whatsapp?: string | null;
-  responsible_name?: string | null;
-  responsible_email?: string | null;
-  responsible_phone?: string | null;
   city?: string | null;
   state?: string | null;
   primary_color?: string | null;

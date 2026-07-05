@@ -31,3 +31,10 @@ Thumbs.db
 
 # Cache
 .cache/
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Cloudflare local state
+.wrangler/
+
