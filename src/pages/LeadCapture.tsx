@@ -25,6 +25,8 @@ import { saveResultContext } from '@/lib/resultContext';
 export default function LeadCapture() {
   const navigate = useNavigate();
   const { partnerSlug, buildPath } = useFunnelContext();
+  const privacyLink = buildPath(APP_CONFIG.privacyPolicyPath);
+  const termsLink = buildPath(APP_CONFIG.termsPath);
   const partner = partnerSlug || 'direto';
   const {
     partnerCompany,
@@ -304,7 +306,7 @@ export default function LeadCapture() {
                 <input id="aceiteContato" type="checkbox" checked={form.aceiteContato} onChange={(event) => updateField('aceiteContato', event.target.checked)} className="mt-1 size-4 rounded border-gray-300 text-[#C47A21] focus:ring-[#C47A21]" />
                 <div className="text-xs leading-relaxed text-[var(--text-muted)]">
                   <label htmlFor="aceiteContato" className="cursor-pointer">{consentText}</label>{' '}
-                  Li a <Link to={APP_CONFIG.privacyPolicyPath} target="_blank" rel="noreferrer" className="font-semibold text-[var(--deep-blue)] underline">Política de Privacidade</Link> e os <Link to={APP_CONFIG.termsPath} target="_blank" rel="noreferrer" className="font-semibold text-[var(--deep-blue)] underline">Termos de Uso</Link>.
+                  Li a <Link to={privacyLink} target="_blank" rel="noreferrer" className="font-semibold text-[var(--deep-blue)] underline">Política de Privacidade</Link> e os <Link to={termsLink} target="_blank" rel="noreferrer" className="font-semibold text-[var(--deep-blue)] underline">Termos de Uso</Link>.
                 </div>
               </div>
               {errors.aceiteContato && <p className="mt-1 text-xs text-red-500">{errors.aceiteContato}</p>}

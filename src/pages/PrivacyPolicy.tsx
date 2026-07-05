@@ -1,21 +1,25 @@
 import { Link } from 'react-router-dom';
 import { Building2, ArrowLeft, MessageCircle } from 'lucide-react';
 import { APP_CONFIG } from '@/constants/config';
+import { useFunnelContext } from '@/hooks/useFunnelContext';
 
 const whatsappUrl = `https://wa.me/${APP_CONFIG.temporaryOperationsWhatsapp}`;
 
 export default function PrivacyPolicy() {
+  const { partnerSlug, buildPath } = useFunnelContext();
+  const homeLink = partnerSlug !== 'direto' ? buildPath(`/p/${partnerSlug}`) : buildPath('/');
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
-          <Link to="/" className="flex items-center gap-3 font-semibold text-slate-950">
+          <Link to={homeLink} className="flex items-center gap-3 font-semibold text-slate-950">
             <span className="flex size-9 items-center justify-center rounded-xl bg-slate-950 text-white">
               <Building2 className="size-4" />
             </span>
             MCI Consórcio
           </Link>
-          <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950">
+          <Link to={homeLink} className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-950">
             <ArrowLeft className="size-4" />
             Voltar
           </Link>
