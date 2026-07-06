@@ -121,19 +121,19 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
     set({ scores: adjustedScores, perfilPrincipal: principal, perfilSecundario: secundario });
 
-    localStorage.setItem('quiz_scores', JSON.stringify(adjustedScores));
-    localStorage.setItem('quiz_principal', principal);
-    if (secundario) localStorage.setItem('quiz_secundario', secundario);
-    else localStorage.removeItem('quiz_secundario');
-    localStorage.setItem('quiz_answers', JSON.stringify(answers));
+    sessionStorage.setItem('quiz_scores', JSON.stringify(adjustedScores));
+    sessionStorage.setItem('quiz_principal', principal);
+    if (secundario) sessionStorage.setItem('quiz_secundario', secundario);
+    else sessionStorage.removeItem('quiz_secundario');
+    sessionStorage.setItem('quiz_answers', JSON.stringify(answers));
   },
 
   reset: () => {
-    localStorage.removeItem('quiz_scores');
-    localStorage.removeItem('quiz_principal');
-    localStorage.removeItem('quiz_secundario');
-    localStorage.removeItem('quiz_answers');
-    localStorage.removeItem('lead_data');
+    sessionStorage.removeItem('quiz_scores');
+    sessionStorage.removeItem('quiz_principal');
+    sessionStorage.removeItem('quiz_secundario');
+    sessionStorage.removeItem('quiz_answers');
+    sessionStorage.removeItem('mci_consorcio_result_context_v1');
     set({ currentStep: 0, answers: [], scores: { ...initialScores }, perfilPrincipal: null, perfilSecundario: null });
   },
 }));

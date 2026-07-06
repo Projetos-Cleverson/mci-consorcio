@@ -229,7 +229,7 @@ export default function CompanyApplication() {
         <aside className="lg:sticky lg:top-8 rounded-3xl bg-[#0F2B4C] text-white p-7 shadow-xl">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-400/10 border border-emerald-300/20 text-emerald-200 text-xs font-semibold mb-5">
             <ShieldCheck className="w-4 h-4" />
-            Parceiro autorizado
+            Empresa parceira do MCI
           </div>
 
           <h1 className="text-3xl md:text-4xl font-display font-bold leading-tight mb-4">

@@ -22,7 +22,7 @@ export function usePartnerCompany(slug?: string | null): PartnerState {
   const normalizedSlug = useMemo(() => (slug || '').trim().toLowerCase(), [slug]);
   const [state, setState] = useState<PartnerState>({
     partnerCompany: null,
-    loading: Boolean(normalizedSlug),
+    loading: Boolean(normalizedSlug && normalizedSlug !== 'direto'),
     error: null,
   });
 

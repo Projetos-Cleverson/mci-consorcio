@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '@/components/layout/AdminLayout';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/lib/supabase';
+import { syncMciConsorcioMemberAccess } from '@/lib/teamProductAccess';
 import {
   Building2,
   CheckCircle2,
@@ -188,17 +189,25 @@ export default function Team() {
         throw new Error('Gestores só podem cadastrar consultores.');
       }
 
-      const { error } = await supabase.from('partner_company_users').insert({
-        company_id: companyId,
-        user_id: form.userId.trim() || null,
-        role: form.role,
-        status: form.userId.trim() ? 'active' : 'pending_auth',
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim() || null,
-      });
+      const { data: createdMember, error } = await supabase
+        .from('partner_company_users')
+        .insert({
+          company_id: companyId,
+          user_id: form.userId.trim() || null,
+          role: form.role,
+          status: form.userId.trim() ? 'active' : 'pending_auth',
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || null,
+        })
+        .select('id,user_id,status')
+        .single();
 
       if (error) throw error;
+
+      if (createdMember?.user_id && createdMember.status === 'active') {
+        await syncMciConsorcioMemberAccess(createdMember.id, true);
+      }
 
       setForm({
         name: '',
@@ -272,6 +281,8 @@ export default function Team() {
 
       if (error) throw error;
 
+      await syncMciConsorcioMemberAccess(memberId, status === 'active');
+
       setSuccessMessage(status === 'active' ? 'Usuário reativado.' : 'Usuário suspenso.');
       await loadData();
     } catch (error) {
@@ -300,6 +311,8 @@ export default function Team() {
         .eq('id', member.id);
 
       if (error) throw error;
+
+      await syncMciConsorcioMemberAccess(member.id, true);
 
       setSuccessMessage(`${member.name || member.email || 'Usuário'} vinculado ao login com sucesso.`);
       await loadData();

@@ -1,6 +1,8 @@
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { getPartnerDisplayName, usePartnerCompany } from '@/hooks/usePartnerCompany';
-import { buildTrackedPath } from '@/lib/attribution';
+import { useFunnelContext } from '@/hooks/useFunnelContext';
+import { APP_CONFIG } from '@/constants/config';
 import {
   ArrowRight,
   Building2,
@@ -15,6 +17,8 @@ import {
   AlertTriangle,
   TrendingUp,
   HelpCircle,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 const heroImage = '/images/mci-hero.jpg';
@@ -104,21 +108,57 @@ const faqs = [
 ];
 
 export default function Landing() {
-  const [searchParams] = useSearchParams();
-  const { partnerSlug } = useParams();
-
-  const partnerFromQuery = searchParams.get('partner');
-  const partner = partnerSlug || partnerFromQuery || undefined;
-  const diagnosticoLink = buildTrackedPath('/diagnostico', searchParams, partner);
-  const { partnerCompany } = usePartnerCompany(partner);
+  const { partnerSlug: routePartnerSlug } = useParams();
+  const { partnerSlug, buildPath } = useFunnelContext(routePartnerSlug);
+  const diagnosticoLink = buildPath('/diagnostico');
+  const privacyLink = buildPath(APP_CONFIG.privacyPolicyPath);
+  const termsLink = buildPath(APP_CONFIG.termsPath);
+  const homeLink = partnerSlug !== 'direto' ? buildPath(`/p/${partnerSlug}`) : buildPath('/');
+  const { partnerCompany, loading: partnerLoading, error: partnerError } = usePartnerCompany(partnerSlug);
   const partnerDisplayName = getPartnerDisplayName(partnerCompany);
+  const partnerUnavailable = partnerSlug !== 'direto' && !partnerLoading && !partnerCompany;
+
+  useEffect(() => {
+    document.title = partnerDisplayName
+      ? `MCI Consórcio | Atendimento por ${partnerDisplayName}`
+      : 'MCI Consórcio | Diagnóstico de Compra Planejada';
+  }, [partnerDisplayName]);
+
+  if (partnerLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-5 text-white">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
+          <Loader2 className="size-5 animate-spin text-amber-300" />
+          <span className="text-sm font-medium">Validando a empresa parceira...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (partnerUnavailable) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-5 text-white">
+        <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl">
+          <AlertCircle className="mx-auto size-11 text-amber-300" />
+          <h1 className="mt-5 font-display text-3xl font-bold">Link de parceiro indisponível</h1>
+          <p className="mt-4 text-sm leading-6 text-white/70">
+            Não encontramos uma empresa ativa para este endereço. O diagnóstico não será iniciado por este link.
+            {partnerError ? ' Tente novamente mais tarde.' : ''}
+          </p>
+          <Link to="/" className="mt-7 inline-flex rounded-2xl bg-[#C47A21] px-6 py-3 text-sm font-bold text-white">
+            Acessar o MCI Consórcio
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
       {/* Header */}
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-slate-950/82 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-2.5">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to={homeLink} className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
               <Building2 className="h-4.5 w-4.5 text-white" />
             </div>
@@ -137,7 +177,7 @@ export default function Landing() {
       <span className="hidden sm:inline text-white/35">•</span>
 
       <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wide text-amber-300">
-        Parceiro autorizado
+        Empresa parceira do MCI
       </span>
     </div>
   )}
@@ -200,25 +240,25 @@ export default function Landing() {
             <div className="max-w-3xl lg:pt-1">
               <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/80 backdrop-blur">
                 <ShieldCheck className="h-4 w-4 text-amber-300" />
-                {partnerDisplayName ? partnerDisplayName : 'Diagnóstico gratuito e orientativo'}
+                {partnerDisplayName ? `Atendimento por ${partnerDisplayName}` : 'Diagnóstico 100% gratuito e sem compromisso'}
               </div>
 
               <h1 className="max-w-3xl font-display text-[2.25rem] font-bold leading-[1.01] tracking-tight text-white drop-shadow-[0_4px_22px_rgba(0,0,0,0.7)] sm:text-5xl lg:text-[3.15rem] xl:text-[3.45rem]">
-                Descubra se o consórcio imobiliário faz sentido para o seu{' '}
-                <span className="text-[#E0A84B]">momento.</span>
+                Consórcio imobiliário faz sentido para o seu momento?{' '}
+                <span className="text-[#E0A84B]">Descubra em poucos minutos.</span>
               </h1>
 
               <p className="mt-3 max-w-2xl text-[0.9rem] font-medium leading-6 text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] sm:text-[0.95rem]">
-                Faça gratuitamente o Diagnóstico de Compra Planejada e entenda se sua renda, prazo, objetivo, expectativa e possibilidade de lance combinam com uma estratégia de consórcio imobiliário.
+                Faça um diagnóstico gratuito sobre sua renda, prazo, objetivo e possibilidade de lance — e entenda se o consórcio combina com sua estratégia de compra.
               </p>
 
               <div className="mt-2.5 max-w-xl border-l-2 border-amber-400/80 pl-4">
               <p className="text-sm font-medium leading-6 text-white/95 drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)]">
-                Orientação inicial para avaliar consórcio com mais clareza, sem promessa de contemplação e sem pressão comercial.
+                Sem promessa de contemplação. Sem pressão comercial.
                 </p>
                 {partnerDisplayName && (
                   <p className="mt-2 text-sm font-bold text-emerald-200/95">
-                    Parceiro autorizado
+                    Atendimento comercial por {partnerDisplayName}, empresa parceira do MCI
                   </p>
                 )}
                 </div>
@@ -554,7 +594,7 @@ export default function Landing() {
               </div>
 
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
-                Universidade EPSA
+                EPSA Core
               </p>
 
               <h2 className="mt-4 font-display text-4xl font-bold tracking-tight sm:text-5xl">
@@ -564,7 +604,7 @@ export default function Landing() {
 
             <div className="text-lg leading-8 text-white/75">
               <p>
-                O MCI Consórcio faz parte do ecossistema da Universidade EPSA, criado para organizar a captação, qualificação e atendimento consultivo de clientes interessados em consórcio imobiliário.
+                O MCI Consórcio é um produto da EPSA Core, criado para organizar a captação, qualificação e o atendimento consultivo de pessoas interessadas em consórcio imobiliário.
               </p>
 
               <p className="mt-5">
@@ -662,7 +702,7 @@ export default function Landing() {
             </div>
 
             <p className="text-sm leading-6 text-white/55">
-              Uma ferramenta da Universidade EPSA para ajudar clientes a entenderem se o consórcio imobiliário faz sentido com mais clareza.
+              Produto da EPSA Core, operado pela GVS Imóveis, para ajudar clientes a avaliar o consórcio imobiliário com mais clareza e responsabilidade.
             </p>
           </div>
 
@@ -674,9 +714,11 @@ export default function Landing() {
           </div>
 
           <div>
-            <h3 className="font-semibold">Privacidade</h3>
+            <h3 className="font-semibold">Responsável pela plataforma</h3>
             <p className="mt-3 text-sm leading-6 text-white/55">
-              Seus dados são utilizados apenas para atendimento, diagnóstico e acompanhamento comercial, conforme autorização fornecida no formulário.
+              {APP_CONFIG.legalName}<br />
+              CNPJ {APP_CONFIG.cnpj}<br />
+              {APP_CONFIG.address}
             </p>
           </div>
 
@@ -692,12 +734,18 @@ export default function Landing() {
               <a href="#faq" className="hover:text-white">
                 Perguntas frequentes
               </a>
+              <Link to={privacyLink} className="hover:text-white">
+                Política de Privacidade
+              </Link>
+              <Link to={termsLink} className="hover:text-white">
+                Termos de Uso
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="mx-auto mt-10 max-w-7xl text-sm text-white/35">
-          © {new Date().getFullYear()} MCI Consórcio Imobiliário. Powered by Universidade EPSA.
+        <div className="mx-auto mt-10 max-w-7xl border-t border-white/10 pt-6 text-xs leading-5 text-white/35">
+          © {new Date().getFullYear()} MCI Consórcio — produto da EPSA Core. O MCI não é administradora de consórcio e não garante contemplação, prazo, aprovação ou contratação.
         </div>
       </footer>
     </div>

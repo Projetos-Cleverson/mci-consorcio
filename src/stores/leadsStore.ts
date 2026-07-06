@@ -12,7 +12,7 @@ interface LeadsState {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   loadData: () => Promise<void>;
-  addLead: (lead: Lead) => void;
+  addLead: (lead: Lead) => Promise<void>;
   updateLead: (id: string, updates: Partial<Lead>) => void;
   moveLead: (id: string, newStatus: string) => void;
   addPartner: (partner: Partner) => void;
@@ -143,7 +143,9 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 function saveToStorage<T>(key: string, value: T) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
+  } catch {
+    // Falhas de armazenamento local não devem interromper a sessão.
+  }
 }
 
 function getDbProfile(profile: ProfileType) {
@@ -162,8 +164,14 @@ function getUiStatus(status?: string) {
   return DB_TO_STATUS[status || 'novo_diagnostico'] || 'Novo diagnóstico';
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function safeScores(value: unknown): ProfileScores {
-  const source = (value && typeof value === 'object') ? value as Record<string, number> : {};
+  const source = asRecord(value);
   return {
     financiamento: Number(source.financiamento || source.consorcio_planejado || 0),
     consorcio: Number(source.consorcio || source.lance_estrategico || 0),
@@ -189,6 +197,17 @@ function getDbAttribution(dbLead: DbLead): Lead['attribution'] {
   return Object.values(attribution).some(Boolean) ? attribution : undefined;
 }
 
+function getStoredSecondaryProfile(value: unknown): ProfileType | undefined {
+  const result = asRecord(asRecord(value)._result);
+  const stored = result.secondary_profile;
+
+  if (typeof stored !== 'string' || !stored) return undefined;
+  if (stored in DB_TO_INTERNAL_PROFILE) return getInternalProfile(stored);
+  if (stored in INTERNAL_TO_DB_PROFILE) return stored as ProfileType;
+
+  return undefined;
+}
+
 function mapLeadToDb(lead: Lead) {
   return {
     id: lead.id,
@@ -205,7 +224,28 @@ function mapLeadToDb(lead: Lead) {
     diagnostic_model: 'mci_consorcio_imobiliario',
     diagnostic_result: getDbProfile(lead.perfilPrincipal),
     answers_json: lead.respostas || [],
-    score_json: lead.scores || {},
+    score_json: {
+      ...(lead.scores || {}),
+      _tracking: lead.tracking || null,
+      _consent: lead.consent || null,
+      _result: {
+        primary_profile: getDbProfile(lead.perfilPrincipal),
+        secondary_profile: lead.perfilSecundario
+          ? getDbProfile(lead.perfilSecundario)
+          : null,
+      },
+      _context: {
+        origem: lead.origem,
+        temperatura: lead.temperatura,
+        tags: lead.tags,
+        faixa_imovel: lead.faixaImovel || null,
+        faixa_renda: lead.faixaRenda || null,
+        entrada_disponivel: lead.entradaDisponivel || null,
+        urgencia: lead.urgencia || null,
+        objetivo: lead.objetivo || null,
+        produto_recomendado: lead.produtoRecomendado || null,
+      },
+    },
     status: getDbStatus(lead.status),
     assigned_to_user_id: lead.assignedToUserId || null,
     assigned_to_name: lead.responsavel || null,
@@ -246,6 +286,7 @@ function mapDbToLead(dbLead: DbLead): Lead {
     respostas: answers,
     scores,
     perfilPrincipal: profile,
+    perfilSecundario: getStoredSecondaryProfile(dbLead.score_json),
     origem: partnerName ? `Empresa parceira: ${partnerName}` : 'MCI Consórcio Imobiliário',
     parceiro: partner !== 'direto' ? partner : undefined,
     parceiroNome: partnerName || undefined,
@@ -266,7 +307,7 @@ function mapDbToLead(dbLead: DbLead): Lead {
 }
 
 export const useLeadsStore = create<LeadsState>((set, get) => ({
-  leads: loadFromStorage<Lead[]>('mci_consorcio_admin_leads', []),
+  leads: [],
   partners: loadFromStorage<Partner[]>('mci_consorcio_admin_partners', []),
   isAuthenticated: loadFromStorage<boolean>(AUTH_STORAGE_KEY, loadFromStorage<boolean>('admin_auth', false)),
   isLoading: false,
@@ -312,7 +353,6 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
   logout: async () => {
     await supabase.auth.signOut();
     set({ isAuthenticated: false, leads: [] });
-    saveToStorage('mci_consorcio_admin_leads', []);
     clearAuthStorage();
   },
 
@@ -324,7 +364,6 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
       if (!permission) {
         await supabase.auth.signOut();
         clearAuthStorage();
-        saveToStorage('mci_consorcio_admin_leads', []);
         set({ isAuthenticated: false, leads: [], isLoading: false });
         throw new Error('Usuário sem permissão para acessar o MCI Consórcio.');
       }
@@ -364,35 +403,35 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
       const { data, error } = await query;
       if (error) throw error;
       const mapped = (data || []).map((lead) => mapDbToLead(lead as DbLead));
-      saveToStorage('mci_consorcio_admin_leads', mapped);
       set({ leads: mapped, isLoading: false, syncError: null });
     } catch (error) {
       set({ isLoading: false, syncError: error instanceof Error ? error.message : 'Erro ao carregar dados.' });
     }
   },
 
-  addLead: (lead) => {
+  addLead: async (lead) => {
     const safeLead = { ...lead, id: lead.id };
-    set((state) => {
-      const newLeads = [safeLead, ...state.leads];
-      saveToStorage('mci_consorcio_admin_leads', newLeads);
-      return { leads: newLeads };
-    });
+    set({ syncError: null });
 
-    void (async () => {
-      try {
-        const { error } = await supabase.from('mci_consorcio_leads').insert(mapLeadToDb(safeLead));
-        if (error) throw error;
-      } catch (error) {
-        set({ syncError: error instanceof Error ? error.message : 'Erro ao salvar lead.' });
-      }
-    })();
+    const { error } = await supabase
+      .from('mci_consorcio_leads')
+      .insert(mapLeadToDb(safeLead));
+
+    if (error && error.code !== '23505') {
+      const message = error.message || 'Erro ao salvar lead.';
+      set({ syncError: message });
+      throw new Error(message);
+    }
+
+    // Em uma nova tentativa com o mesmo ID, chave duplicada indica que a primeira gravação foi concluída.
+    if (error?.code === '23505') {
+      set({ syncError: null });
+    }
   },
 
   updateLead: (id, updates) => {
     set((state) => {
       const newLeads = state.leads.map((lead) => (lead.id === id ? { ...lead, ...updates } : lead));
-      saveToStorage('mci_consorcio_admin_leads', newLeads);
       return { leads: newLeads };
     });
 
@@ -400,10 +439,7 @@ export const useLeadsStore = create<LeadsState>((set, get) => ({
       try {
         const updatedLead = get().leads.find((lead) => lead.id === id);
         if (!updatedLead) return;
-        const payload = {
-          ...mapLeadToDb(updatedLead),
-          ...(updates.status ? { status_updated_at: new Date().toISOString() } : {}),
-        };
+        const payload = mapLeadToDb(updatedLead);
 
         const { error } = await supabase
           .from('mci_consorcio_leads')

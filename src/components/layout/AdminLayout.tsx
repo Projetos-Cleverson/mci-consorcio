@@ -130,7 +130,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           const role = normalizeRole(companyUser.role);
           setAccessRole(role);
 
-          let company: any = null;
+          let company: {
+            id: string;
+            name: string;
+            display_name?: string | null;
+            slug: string;
+            logo_url?: string | null;
+            status?: string | null;
+          } | null = null;
 
           if (companyUser.company_id) {
             const { data: companyData, error: companyError } = await supabase

@@ -1,11 +1,18 @@
 export const APP_CONFIG = {
-  name: 'MCI Consórcio Imobiliário',
+  name: 'MCI Consórcio',
   shortName: 'MCI Consórcio',
   productName: 'Diagnóstico de Compra Planejada',
-  brandOwner: 'Universidade EPSA',
+  brandName: 'EPSA Core',
+  legalName: 'GVS IMOVEIS E SERVICOS DE CREDITOS LTDA',
+  cnpj: '26.329.988/0001-20',
+  address: 'Rua Visconde de Pirajá, 414, sala 718, Ipanema, Rio de Janeiro - RJ, CEP 22410-905',
   description:
-    'Diagnóstico de aderência ao consórcio imobiliário para identificar perfil de compra planejada, potencial de lance, visão patrimonial e pontos de atenção antes da contratação.',
-  whatsappNumber: '5521982134226',
+    'Diagnóstico gratuito para avaliar se o consórcio imobiliário combina com sua renda, prazo, objetivo e estratégia de compra.',
+  temporaryOperationsWhatsapp: '5521982134226',
+  privacyContactLabel: 'WhatsApp institucional temporário',
+  consentVersion: 'mci-consorcio-consent-v1-2026-07-04',
+  privacyPolicyPath: '/privacidade',
+  termsPath: '/termos',
 };
 
 export const STATUS_OPTIONS = [
@@ -38,13 +45,13 @@ export const KANBAN_COLUMNS = [
 ];
 
 export const ORIGENS = [
-  'MCI Consórcio Imobiliário',
+  'MCI Consórcio',
   'Tráfego pago',
   'Orgânico',
   'Empresa parceira',
   'Indicação',
   'Campanha interna',
-  'Universidade EPSA',
+  'EPSA Core',
   'Manual',
   'Outro',
 ];
