@@ -44,10 +44,7 @@ export function usePartnerCompany(slug?: string | null): PartnerState {
 
       try {
         const { data, error } = await supabase
-          .from('partner_companies_public')
-          .select('id,name,slug,display_name,logo_url,commercial_whatsapp,city,state,primary_color,secondary_color,status')
-          .eq('slug', normalizedSlug)
-          .in('status', ['active', 'pilot'])
+          .rpc('get_mci_partner_public', { p_slug: normalizedSlug })
           .maybeSingle();
 
         if (error) throw error;

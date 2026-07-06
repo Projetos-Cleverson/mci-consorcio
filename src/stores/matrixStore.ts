@@ -22,6 +22,11 @@ type MatrixDbLead = {
   utm_source?: string | null;
   utm_medium?: string | null;
   utm_campaign?: string | null;
+  utm_content?: string | null;
+  utm_term?: string | null;
+  gclid?: string | null;
+  gbraid?: string | null;
+  wbraid?: string | null;
 };
 
 interface MatrixLeadsState {
@@ -156,6 +161,16 @@ function mapDbToLead(row: MatrixDbLead): Lead {
     origem,
     parceiro: row.partner_slug || undefined,
     parceiroNome: row.partner_name || undefined,
+    attribution: {
+      utm_source: row.utm_source || undefined,
+      utm_medium: row.utm_medium || undefined,
+      utm_campaign: row.utm_campaign || undefined,
+      utm_content: row.utm_content || undefined,
+      utm_term: row.utm_term || undefined,
+      gclid: row.gclid || undefined,
+      gbraid: row.gbraid || undefined,
+      wbraid: row.wbraid || undefined,
+    },
     temperatura: getTemperature(profile),
     status: getUiStatus(row.status),
     tags: [row.product_key, row.diagnostic_result || 'sem_diagnostico'],

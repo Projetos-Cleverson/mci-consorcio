@@ -100,8 +100,14 @@ export default function AdminReports() {
   }, {} as Record<string, number>);
 
   const byOrigem = leads.reduce((acc, l) => {
-    if (!acc[l.origem]) acc[l.origem] = 0;
-    acc[l.origem] += 1;
+    const origem = l.attribution?.utm_campaign
+      ? `${l.origem} · ${l.attribution.utm_campaign}`
+      : l.attribution?.utm_source
+        ? `${l.origem} · ${l.attribution.utm_source}`
+        : l.origem;
+
+    if (!acc[origem]) acc[origem] = 0;
+    acc[origem] += 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -117,6 +123,14 @@ export default function AdminReports() {
       PerfilSecundario: l.perfilSecundario || '',
       Origem: l.origem,
       Parceiro: l.parceiro || '',
+      UtmSource: l.attribution?.utm_source || '',
+      UtmMedium: l.attribution?.utm_medium || '',
+      UtmCampaign: l.attribution?.utm_campaign || '',
+      UtmContent: l.attribution?.utm_content || '',
+      UtmTerm: l.attribution?.utm_term || '',
+      Gclid: l.attribution?.gclid || '',
+      Gbraid: l.attribution?.gbraid || '',
+      Wbraid: l.attribution?.wbraid || '',
       Status: l.status,
       Temperatura: l.temperatura,
       Responsavel: l.responsavel || '',
@@ -197,7 +211,7 @@ export default function AdminReports() {
         <div className="lg:col-span-2 bg-white rounded-xl p-5 border border-[var(--medium-gray)]">
           <h3 className="font-semibold text-[var(--graphite)] text-sm mb-4 flex items-center gap-2">
             <PieChart className="size-4" />
-            Origem e regra operacional
+            Origem, campanha e regra operacional
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

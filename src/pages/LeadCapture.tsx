@@ -21,6 +21,7 @@ import { getPartnerDisplayName, getPartnerWhatsapp, usePartnerCompany } from '@/
 import { useFunnelContext } from '@/hooks/useFunnelContext';
 import { captureTrackingContext } from '@/lib/tracking';
 import { saveResultContext } from '@/lib/resultContext';
+import { getAttributionData } from '@/lib/attribution';
 
 export default function LeadCapture() {
   const navigate = useNavigate();
@@ -84,6 +85,11 @@ export default function LeadCapture() {
       return;
     }
 
+    if (partner !== 'direto' && partnerLoading) {
+      setSubmitError('Ainda estamos carregando os dados de atendimento do parceiro. Tente novamente em instantes.');
+      return;
+    }
+
     if (!validate()) {
       toast({
         variant: 'destructive',
@@ -113,7 +119,9 @@ export default function LeadCapture() {
 
     try {
       const now = new Date().toISOString();
-      const tracking = captureTrackingContext(new URLSearchParams(window.location.search), partner);
+      const searchParams = new URLSearchParams(window.location.search);
+      const tracking = captureTrackingContext(searchParams, partner);
+      const attribution = getAttributionData(searchParams);
       const temperatura = classifyTemperature(perfilFinal, answersFinal);
       const tags = generateLeadTags(perfilFinal, temperatura, answersFinal);
 
@@ -142,6 +150,7 @@ export default function LeadCapture() {
         parceiro: partner !== 'direto' ? partner : undefined,
         parceiroNome: partnerDisplayName || undefined,
         parceiroWhatsapp: partnerWhatsapp || undefined,
+        attribution,
         temperatura,
         status: 'Novo diagnóstico',
         tags,

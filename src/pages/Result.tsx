@@ -174,13 +174,13 @@ export default function Result() {
 
               <div className="flex items-center justify-center border-t border-white/10 bg-white/5 p-6 sm:border-l sm:border-t-0 sm:p-7">
                 <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex w-full min-w-[250px] items-center justify-center gap-2 rounded-2xl bg-[#C47A21] px-6 py-4 text-center text-sm font-bold text-white shadow-2xl shadow-amber-500/25 transition hover:-translate-y-0.5 hover:bg-[#E0A84B] hover:text-slate-950"
-                >
-                  <MessageCircle className="size-5" />
-                  {profile.cta}
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-full min-w-[250px] items-center justify-center gap-2 rounded-2xl bg-[#C47A21] px-6 py-4 text-center text-sm font-bold text-white shadow-2xl shadow-amber-500/25 transition hover:-translate-y-0.5 hover:bg-[#E0A84B] hover:text-slate-950"
+                  >
+                    <MessageCircle className="size-5" />
+                    {profile.cta}
                 </a>
               </div>
             </div>

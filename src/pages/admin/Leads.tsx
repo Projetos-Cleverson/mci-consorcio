@@ -119,6 +119,14 @@ export default function AdminLeads() {
       PerfilSecundario: l.perfilSecundario ? (profileLabels[l.perfilSecundario] || l.perfilSecundario) : '',
       Origem: l.origem,
       EmpresaParceira: l.parceiroNome || l.parceiro || '',
+      UtmSource: l.attribution?.utm_source || '',
+      UtmMedium: l.attribution?.utm_medium || '',
+      UtmCampaign: l.attribution?.utm_campaign || '',
+      UtmContent: l.attribution?.utm_content || '',
+      UtmTerm: l.attribution?.utm_term || '',
+      Gclid: l.attribution?.gclid || '',
+      Gbraid: l.attribution?.gbraid || '',
+      Wbraid: l.attribution?.wbraid || '',
       Status: l.status,
       Temperatura: l.temperatura,
       FaixaImovel: l.faixaImovel || '',
@@ -302,7 +310,14 @@ export default function AdminLeads() {
                         {profileLabels[lead.perfilPrincipal] || lead.perfilPrincipal}
                       </span>
                     </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-[var(--text-muted)] text-xs">{lead.origem}</td>
+                    <td className="px-4 py-3 hidden md:table-cell text-xs">
+                      <p className="text-[var(--text-muted)]">{lead.origem}</p>
+                      {(lead.attribution?.utm_campaign || lead.attribution?.utm_source || lead.attribution?.gclid || lead.attribution?.gbraid || lead.attribution?.wbraid) && (
+                        <p className="mt-1 font-semibold text-[var(--deep-blue)]">
+                          {lead.attribution?.utm_campaign || lead.attribution?.utm_source || 'Clique identificado'}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <select
                         value={lead.status}

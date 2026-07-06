@@ -30,6 +30,17 @@ export interface LeadData {
   aceiteContato: boolean;
 }
 
+export interface LeadAttribution {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
+}
+
 export interface LeadTrackingContext {
   partner_slug: string;
   landing_url: string;
@@ -64,6 +75,7 @@ export interface Lead {
   parceiro?: string;
   parceiroNome?: string;
   parceiroWhatsapp?: string;
+  attribution?: LeadAttribution;
   temperatura: LeadTemperature;
   status: string;
   responsavel?: string;

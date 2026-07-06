@@ -309,6 +309,21 @@ export default function AdminLeadDetail() {
             )}
           </div>
 
+          {/* Campaign attribution */}
+          <div className="bg-white rounded-xl p-5 border border-[var(--medium-gray)]">
+            <h3 className="font-semibold text-[var(--graphite)] text-sm mb-3">Origem da campanha</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <Info label="Parceiro" value={lead.parceiroNome || lead.parceiro || 'Direto'} />
+              <Info label="Origem" value={lead.origem} />
+              <Info label="utm_source" value={lead.attribution?.utm_source || '—'} />
+              <Info label="utm_medium" value={lead.attribution?.utm_medium || '—'} />
+              <Info label="utm_campaign" value={lead.attribution?.utm_campaign || '—'} />
+              <Info label="utm_content" value={lead.attribution?.utm_content || '—'} />
+              <Info label="utm_term" value={lead.attribution?.utm_term || '—'} />
+              <Info label="click id" value={lead.attribution?.gclid || lead.attribution?.gbraid || lead.attribution?.wbraid || '—'} />
+            </div>
+          </div>
+
           {/* Scores */}
           <div className="bg-white rounded-xl p-5 border border-[var(--medium-gray)]">
             <h3 className="font-semibold text-[var(--graphite)] text-sm mb-3">Pontuação por perfil</h3>
@@ -569,5 +584,14 @@ export default function AdminLeadDetail() {
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-gray-50 px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
+      <p className="mt-1 break-all text-[var(--graphite)] font-medium">{value}</p>
+    </div>
   );
 }
