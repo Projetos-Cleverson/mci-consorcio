@@ -9,12 +9,16 @@ import { ESTADOS_BR } from '@/constants/config';
 import { classifyTemperature, generateLeadTags, getDownPaymentRange, getIncomeRange, getObjective, getPropertyRange, getRecommendedProduct, getUrgency } from '@/lib/leadUtils';
 import { Building2, ShieldCheck } from 'lucide-react';
 import { getPartnerDisplayName, getPartnerWhatsapp, usePartnerCompany } from '@/hooks/usePartnerCompany';
+import { buildTrackedPath, getAttributionData } from '@/lib/attribution';
 
 export default function LeadCapture() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const partner = searchParams.get('partner') || 'direto';
-  const { partnerCompany } = usePartnerCompany(partner);
+  const partnerForTracking = partner !== 'direto' ? partner : undefined;
+  const attribution = getAttributionData(searchParams);
+  const { partnerCompany, loading: partnerLoading } = usePartnerCompany(partner);
+  const isPartnerFlow = partner !== 'direto';
   const partnerDisplayName = getPartnerDisplayName(partnerCompany);
   const partnerWhatsapp = getPartnerWhatsapp(partnerCompany);
   const { toast } = useToast();
@@ -53,6 +57,16 @@ export default function LeadCapture() {
       toast({ variant: 'destructive', title: 'Campos obrigatórios', description: 'Preencha todos os campos obrigatórios.' });
       return;
     }
+
+    if (isPartnerFlow && partnerLoading) {
+      toast({ variant: 'destructive', title: 'Aguarde o parceiro carregar', description: 'Ainda estamos carregando os dados de atendimento do parceiro.' });
+      return;
+    }
+
+    if (isPartnerFlow && !partnerCompany) {
+      toast({ variant: 'destructive', title: 'Parceiro não encontrado', description: 'Não foi possível confirmar o parceiro desta URL. Volte para o link oficial do parceiro e tente novamente.' });
+      return;
+    }
     let perfilFinal = perfilPrincipal;
 
     if (!perfilFinal && answers.length > 0) {
@@ -61,7 +75,7 @@ export default function LeadCapture() {
     }
 
     if (!perfilFinal) {
-      navigate(partner !== 'direto' ? `/diagnostico?partner=${encodeURIComponent(partner)}` : '/diagnostico');
+      navigate(buildTrackedPath('/diagnostico', searchParams, partnerForTracking));
       return;
     }
 
@@ -84,6 +98,7 @@ export default function LeadCapture() {
       parceiro: partner !== 'direto' ? partner : undefined,
       parceiroNome: partnerDisplayName || undefined,
       parceiroWhatsapp: partnerWhatsapp || undefined,
+      attribution,
       temperatura,
       status: 'Novo diagnóstico',
       tags,
@@ -104,8 +119,9 @@ export default function LeadCapture() {
       slug: partner,
       display_name: partnerDisplayName,
       commercial_whatsapp: partnerWhatsapp,
+      attribution,
     }));
-    navigate(partner !== 'direto' ? `/resultado?partner=${encodeURIComponent(partner)}` : '/resultado');
+    navigate(buildTrackedPath('/resultado', searchParams, partnerForTracking));
   };
 
   const updateField = (field: keyof LeadData, value: string | boolean) => {
@@ -207,8 +223,8 @@ export default function LeadCapture() {
               <span className="text-xs text-[var(--graphite)]">Diagnóstico orientativo, sem promessa de contemplação.</span>
             </div>
 
-            <button type="submit" className="w-full mt-4 px-6 py-4 rounded-xl bg-[#C47A21] text-white font-semibold hover:bg-[#E0A84B] hover:text-slate-950 transition-colors active:scale-[0.98]">
-              Ver meu resultado
+            <button type="submit" disabled={isPartnerFlow && partnerLoading} className="w-full mt-4 px-6 py-4 rounded-xl bg-[#C47A21] text-white font-semibold hover:bg-[#E0A84B] hover:text-slate-950 transition-colors active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-400 disabled:hover:text-white">
+              {isPartnerFlow && partnerLoading ? 'Carregando parceiro...' : 'Ver meu resultado'}
             </button>
           </form>
         </div>

@@ -4,17 +4,17 @@ import { QUESTIONS } from '@/constants/questions';
 import ProgressBar from '@/components/features/ProgressBar';
 import { ArrowLeft, ArrowRight, Building2, Circle, CheckCircle2 } from 'lucide-react';
 import { getPartnerDisplayName, usePartnerCompany } from '@/hooks/usePartnerCompany';
+import { buildPartnerLandingPath, buildTrackedPath } from '@/lib/attribution';
 
 export default function Quiz() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const partner = searchParams.get('partner');
+  const partner = searchParams.get('partner') || undefined;
   const { partnerCompany } = usePartnerCompany(partner);
   const partnerDisplayName = getPartnerDisplayName(partnerCompany);
 
-  const withPartner = (path: string) =>
-    partner ? `${path}?partner=${encodeURIComponent(partner)}` : path;
+  const withAttribution = (path: string) => buildTrackedPath(path, searchParams, partner);
 
   const {
     currentStep,
@@ -42,7 +42,7 @@ export default function Quiz() {
 
     if (isLastStep) {
       calculateResult();
-      navigate(withPartner('/dados'));
+      navigate(withAttribution('/dados'));
       return;
     }
 
@@ -52,7 +52,7 @@ export default function Quiz() {
 
   const handlePrev = () => {
     if (currentStep === 0) {
-      navigate(partner ? `/?partner=${encodeURIComponent(partner)}` : '/');
+      navigate(buildPartnerLandingPath(partner, searchParams));
       return;
     }
 

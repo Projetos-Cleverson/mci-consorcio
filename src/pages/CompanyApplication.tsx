@@ -71,7 +71,7 @@ export default function CompanyApplication() {
 
   const previewUrl = useMemo(() => {
     if (!form.desired_slug) return '';
-    return `${window.location.origin}/?partner=${form.desired_slug}`;
+    return `${window.location.origin}/p/${form.desired_slug}`;
   }, [form.desired_slug]);
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -191,7 +191,7 @@ export default function CompanyApplication() {
           <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-left">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Link reservado</p>
             <p className="text-sm font-semibold text-[var(--deep-blue)] break-all">
-              {window.location.origin}/?partner={submittedSlug}
+              {window.location.origin}/p/{submittedSlug}
             </p>
             <p className="text-xs text-slate-500 mt-2">
               Este link será liberado quando a empresa for aprovada.

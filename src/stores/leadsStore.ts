@@ -52,6 +52,14 @@ type DbLead = {
   assigned_by_user_id?: string | null;
   notes?: string | null;
   next_action?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_content?: string | null;
+  utm_term?: string | null;
+  gclid?: string | null;
+  gbraid?: string | null;
+  wbraid?: string | null;
 };
 
 const INTERNAL_TO_DB_PROFILE: Record<ProfileType, string> = {
@@ -166,6 +174,21 @@ function safeScores(value: unknown): ProfileScores {
   };
 }
 
+function getDbAttribution(dbLead: DbLead): Lead['attribution'] {
+  const attribution = {
+    utm_source: dbLead.utm_source || undefined,
+    utm_medium: dbLead.utm_medium || undefined,
+    utm_campaign: dbLead.utm_campaign || undefined,
+    utm_content: dbLead.utm_content || undefined,
+    utm_term: dbLead.utm_term || undefined,
+    gclid: dbLead.gclid || undefined,
+    gbraid: dbLead.gbraid || undefined,
+    wbraid: dbLead.wbraid || undefined,
+  };
+
+  return Object.values(attribution).some(Boolean) ? attribution : undefined;
+}
+
 function mapLeadToDb(lead: Lead) {
   return {
     id: lead.id,
@@ -190,6 +213,14 @@ function mapLeadToDb(lead: Lead) {
     assigned_by_user_id: lead.assignedByUserId || null,
     notes: lead.observacoes || null,
     next_action: lead.proximaAcao || null,
+    utm_source: lead.attribution?.utm_source || null,
+    utm_medium: lead.attribution?.utm_medium || null,
+    utm_campaign: lead.attribution?.utm_campaign || null,
+    utm_content: lead.attribution?.utm_content || null,
+    utm_term: lead.attribution?.utm_term || null,
+    gclid: lead.attribution?.gclid || null,
+    gbraid: lead.attribution?.gbraid || null,
+    wbraid: lead.attribution?.wbraid || null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -219,6 +250,7 @@ function mapDbToLead(dbLead: DbLead): Lead {
     parceiro: partner !== 'direto' ? partner : undefined,
     parceiroNome: partnerName || undefined,
     parceiroWhatsapp: dbLead.partner_whatsapp || undefined,
+    attribution: getDbAttribution(dbLead),
     temperatura: profile === 'emocional' ? 'risco' : profile === 'hibrida' ? 'premium' : profile === 'investidor' ? 'nutricao' : 'morno',
     status: getUiStatus(dbLead.status),
     responsavel: dbLead.assigned_to_name || undefined,
